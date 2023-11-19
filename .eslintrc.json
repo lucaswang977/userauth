@@ -1,0 +1,23 @@
+{
+  "extends": [
+    "next/core-web-vitals",
+    "airbnb",
+    "airbnb-typescript",
+    "plugin:testing-library/react",
+    "prettier"
+  ],
+  "plugins": ["jest", "testing-library", "prettier"],
+  "rules": {
+    "@typescript-eslint/semi": "off",
+    "@typescript-eslint/quotes": "off",
+    "react/react-in-jsx-scope": "off",
+    "react/require-default-props": "off",
+    "react/jsx-props-no-spreading": "off",
+    "react/prop-types": "off",
+    "prettier/prettier": ["warn"]
+  },
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  }
+}
