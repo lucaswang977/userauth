@@ -13,8 +13,8 @@ const fontSans = FontSans({
 })
 
 export const metadata: Metadata = {
-  title: "Todo List Sample Project",
-  description: "Todo list implemented with Next.js",
+  title: "User Authentication Sample Project",
+  description: "User authentication implemented with Next.js",
 }
 
 export default function RootLayout({

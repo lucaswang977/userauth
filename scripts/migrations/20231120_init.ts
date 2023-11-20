@@ -2,12 +2,12 @@ import { Kysely, sql } from "kysely"
 
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
-    .createTable("todo")
+    .createTable("user")
     .addColumn("id", "uuid", (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
-    .addColumn("text", "text")
-    .addColumn("finished", "boolean")
+    .addColumn("email", "text")
+    .addColumn("password", "text")
     .addColumn("created_at", "timestamp", (col) => col.defaultTo(sql`NOW()`))
     .addColumn("updated_at", "timestamp", (col) => col.defaultTo(sql`NOW()`))
     .execute()
