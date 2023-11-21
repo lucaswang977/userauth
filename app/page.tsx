@@ -1,27 +1,5 @@
-import { ThemeSwitcher } from "@/c/reusable/theme-switcher"
-import { cn } from "@/l/utility"
-import getConfig from "next/config"
+import LoginButton from "@/c/business/LoginButton"
 
 export default function Home() {
-  const { publicRuntimeConfig } = getConfig()
-  const version = publicRuntimeConfig?.version
-
-  return (
-    <main
-      className={cn(
-        "container min-h-screen",
-        "flex flex-col items-center justify-between",
-      )}
-    >
-      <div />
-      <div />
-      <div className="mb-3 flex flex-col items-center space-y-1 text-xs text-gray-400">
-        <div className="flex items-center space-x-2">
-          <p>v{version}</p>
-          <ThemeSwitcher />
-        </div>
-        <p>User authentication demo app written using Next.js 14</p>
-      </div>
-    </main>
-  )
+  return <LoginButton />
 }

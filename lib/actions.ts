@@ -1,62 +1,21 @@
-import db from "@/l/dbconn"
-import { revalidateTag } from "next/cache"
+import envVariables from "@/l/env"
+import { slogger } from "@/l/utility"
+import * as jwt from "jsonwebtoken"
 
-export async function fetchTodoList(finished?: boolean) {
-  const result =
-    finished === undefined
-      ? await db
-          .selectFrom("todo")
-          .selectAll()
-          .orderBy("priority desc")
-          .orderBy("created_at desc")
-          .execute()
-      : await db
-          .selectFrom("todo")
-          .selectAll()
-          .orderBy("priority desc")
-          .orderBy("created_at desc")
-          .where("finished", "=", finished)
-          .execute()
+async function login(
+  email: string,
+  password: string,
+): Promise<[boolean, string]> {
+  slogger.info("try logging in with: %s(%s)", email, password)
+  if (email === "test@gmail.com" && password === "abcdabcd") {
+    const token = jwt.sign(
+      { data: email, exp: Math.floor(Date.now() / 1000) + 5 * 60 },
+      envVariables.JWT_SECRET,
+    )
 
-  return result
+    return [true, token]
+  }
+  return [false, "Username or password invalid."]
 }
 
-export async function newTodoItem(text: string, revalidate?: boolean) {
-  const result = await db
-    .insertInto("todo")
-    .values({
-      text,
-      finished: false,
-      priority: 0,
-    })
-    .returningAll()
-    .executeTakeFirstOrThrow()
-
-  if (revalidate === true) revalidateTag(`todo:${result.id}`)
-
-  return result
-}
-
-export async function todoItemMarkFinished(
-  id: string,
-  finished: boolean,
-  revalidate?: boolean,
-) {
-  const result = await db
-    .updateTable("todo")
-    .where("id", "=", id)
-    .set({ finished })
-    .execute()
-
-  if (revalidate === true) revalidateTag(`todo:${id}`)
-
-  return result.length > 0
-}
-
-export async function todoItemDelete(id: string, revalidate?: boolean) {
-  const result = await db.deleteFrom("todo").where("id", "=", id).execute()
-
-  if (revalidate === true) revalidateTag(`todo:${id}`)
-
-  return result.length > 0
-}
+export default login
