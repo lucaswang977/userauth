@@ -1,21 +1,38 @@
+import db from "@/l/dbconn"
 import envVariables from "@/l/env"
 import { slogger } from "@/l/utility"
 import * as jwt from "jsonwebtoken"
 
-async function login(
+export type LoginResult = {
+  result: boolean
+  reason?: string
+  token?: string
+  refreshToken?: string
+}
+
+async function loginByEmailPwd(
   email: string,
   password: string,
-): Promise<[boolean, string]> {
+): Promise<LoginResult> {
   slogger.info("try logging in with: %s(%s)", email, password)
-  if (email === "test@gmail.com" && password === "abcdabcd") {
+  const result = await db
+    .selectFrom("user")
+    .where("email", "=", email)
+    .where("password", "=", password)
+    .execute()
+
+  if (result.length === 1) {
     const token = jwt.sign(
-      { data: email, exp: Math.floor(Date.now() / 1000) + 5 * 60 },
+      {
+        user: email,
+        exp: Math.floor(Date.now() / 1000) + envVariables.JWT_EXPIRES_SECS,
+      },
       envVariables.JWT_SECRET,
     )
 
-    return [true, token]
+    return { result: true, token, refreshToken: "" }
   }
-  return [false, "Username or password invalid."]
+  return { result: false, reason: "Username or password invalid." }
 }
 
-export default login
+export default loginByEmailPwd

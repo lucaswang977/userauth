@@ -1,24 +1,31 @@
+import crypto from "crypto"
 import clsx, { ClassValue } from "clsx"
 import pino from "pino"
 import { twMerge } from "tailwind-merge"
 
-const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs))
+export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs))
 
-const delay = (ms: number) =>
+export const delay = (ms: number) =>
   new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
 
 // For server logging output
-const slogger = pino({
+export const slogger = pino({
   name: "scaffold",
   level: "debug",
 })
 
 // For client/browser logging output
-const clogger = pino({
+export const clogger = pino({
   name: "scaffold",
   level: "trace",
 })
 
-export { cn, delay, slogger, clogger }
+export const generateSalt = () => crypto.randomBytes(16).toString("hex")
+
+export const hashPassword = (password: string, salt: string) =>
+  crypto.pbkdf2Sync(password, salt, 1000, 64, `sha512`).toString(`hex`)
+
+export const verifyPassword = (password: string, hash: string, salt: string) =>
+  hash === crypto.pbkdf2Sync(password, salt, 1000, 64, `sha512`).toString(`hex`)

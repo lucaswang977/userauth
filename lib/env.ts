@@ -7,6 +7,8 @@ const envSchema = z.object({
   PG_USER: z.string().trim().min(1),
   PG_PASSWORD: z.string().trim().min(1),
   JWT_SECRET: z.string().trim().min(1),
+  JWT_EXPIRES_SECS: z.preprocess(Number, z.number().default(300)),
+  JWT_REFRESH_EXPIRES_SECS: z.preprocess(Number, z.number().default(3600)),
 })
 
 const envSchemaParser = envSchema.safeParse({
@@ -16,6 +18,8 @@ const envSchemaParser = envSchema.safeParse({
   PG_USER: process.env.PG_USER,
   PG_PASSWORD: process.env.PG_PASSWORD,
   JWT_SECRET: process.env.JWT_SECRET,
+  JWT_EXPIRES_SECS: process.env.JWT_EXPIRES_SECS,
+  JWT_REFRESH_EXPIRES_SECS: process.env.JWT_REFRESH_EXPIRES_SECS,
 })
 
 if (!envSchemaParser.success) {

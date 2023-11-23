@@ -4,8 +4,10 @@ export interface UserTable {
   id: Generated<string>
   email: string
   password: string
+  salt: string
   first_name?: string
   last_name?: string
+  refresh_token?: string
   created_at: Generated<Date>
   updated_at: Generated<Date>
 }
@@ -15,5 +17,5 @@ export type NewUser = Insertable<UserTable>
 export type UpdateUser = Updateable<UserTable>
 
 export interface Database {
-  todo: UserTable
+  user: UserTable
 }
