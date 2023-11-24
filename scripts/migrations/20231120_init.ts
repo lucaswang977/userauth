@@ -6,8 +6,11 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn("id", "uuid", (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
-    .addColumn("email", "text")
+    .addColumn("email", "text", (col) => col.notNull().unique())
     .addColumn("password", "text")
+    .addColumn("refresh_token", "text")
+    .addColumn("refresh_token_expires_at", "timestamp")
+    .addColumn("salt", "text")
     .addColumn("created_at", "timestamp", (col) => col.defaultTo(sql`NOW()`))
     .addColumn("updated_at", "timestamp", (col) => col.defaultTo(sql`NOW()`))
     .execute()

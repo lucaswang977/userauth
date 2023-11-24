@@ -8,6 +8,7 @@ export interface UserTable {
   first_name?: string
   last_name?: string
   refresh_token?: string
+  refresh_token_expires_at?: Date
   created_at: Generated<Date>
   updated_at: Generated<Date>
 }

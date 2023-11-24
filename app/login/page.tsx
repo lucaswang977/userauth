@@ -1,31 +1,31 @@
 import LoginForm from "@/c/business/LoginForm"
-import login from "@/l/actions"
+import loginByEmailPwd from "@/l/actions"
 import { slogger } from "@/l/utility"
 
-export default function Login() {
+export default function LoginPage() {
   return (
     <LoginForm
       handleLogin={async (email, password) => {
         "use server"
 
-        const [result, message] = await login(email, password)
-        if (result) {
+        const result = await loginByEmailPwd(email, password)
+        if (result.result) {
           slogger.info(
-            "login success with %s(%s), msg: %s",
+            "login success with %s(%s), token: %s",
             email,
             password,
-            message,
+            result.token,
           )
         } else {
           slogger.info(
             "login failed with %s(%s), msg: %s",
             email,
             password,
-            message,
+            result.reason,
           )
         }
 
-        return [result, message]
+        return [result.result, result.token]
       }}
     />
   )
