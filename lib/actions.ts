@@ -1,6 +1,6 @@
 import {
-  findUserByEmail,
   generateJwt,
+  getUserObjectByEmail,
   updateRefreshToken,
   verifyPassword,
 } from "@/l/user"
@@ -18,12 +18,12 @@ async function loginByEmailPwd(
   pwd: string,
 ): Promise<LoginResult> {
   slogger.info("try logging in with: %s", email)
-  const user = await findUserByEmail(email)
+  const user = await getUserObjectByEmail(email)
 
   if (user) {
     const { salt, password } = user
 
-    if (verifyPassword(pwd, password, salt)) {
+    if (password && salt && verifyPassword(pwd, salt, password)) {
       const token = generateJwt({ user: user.id })
       const refreshToken = await updateRefreshToken(user.id)
       if (refreshToken) return { result: true, token, refreshToken }
