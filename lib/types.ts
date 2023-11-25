@@ -20,3 +20,14 @@ export type UpdateUser = Updateable<UserTable>
 export interface Database {
   user: UserTable
 }
+
+export type LoginResult = {
+  result: boolean
+  reason?: string
+  token?: string
+  refreshToken?: string
+}
+
+export type JwtPayload = {
+  userId: string
+}

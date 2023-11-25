@@ -1,13 +1,17 @@
+import { JwtPayload } from "@/l/types"
 import {
   createUserByEmail,
   deleteUserById,
   findUserByEmail,
   findUserById,
+  generateJwt,
   generateSalt,
   getUserObjectByEmail,
   hashPassword,
+  verifyJwt,
   verifyPassword,
 } from "@/l/user"
+import { delay } from "@/l/utility"
 
 jest.mock("uuid", () => ({ v4: () => "0a613541-ba97-47f5-84e3-fdc35a09717c" }))
 
@@ -19,6 +23,26 @@ describe("Password hash test", () => {
     expect(verifyPassword(password, salt, hash)).toBeTruthy()
     expect(verifyPassword("abcd", salt, hash)).toBeFalsy()
   })
+})
+
+describe("Jwt verification & refresh", () => {
+  const payload: JwtPayload = {
+    userId: "abcd",
+  }
+
+  it("Jwt creating and decoding", async () => {
+    const jwt = generateJwt(payload)
+    const decoded = verifyJwt(jwt) as JwtPayload
+    expect(decoded.userId).toEqual(payload.userId)
+
+    // FIX: No use on expires setting, we have to find out why
+    const expiresJwt = generateJwt(payload, 500)
+    await delay(1000)
+    const decodedExpiresJwt = verifyJwt(expiresJwt) as JwtPayload
+    expect(decodedExpiresJwt).toBeUndefined()
+  })
+
+  it("Refresh token", () => {})
 })
 
 describe("User creation and deletion", () => {
