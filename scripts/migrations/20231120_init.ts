@@ -8,11 +8,14 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .addColumn("email", "text", (col) => col.notNull().unique())
     .addColumn("password", "text")
-    .addColumn("refresh_token", "text")
-    .addColumn("refresh_token_expires_at", "timestamp")
+    .addColumn("refreshToken", "text")
+    .addColumn("refreshTokenExpiresAt", "timestamp")
     .addColumn("salt", "text")
-    .addColumn("created_at", "timestamp", (col) => col.defaultTo(sql`NOW()`))
-    .addColumn("updated_at", "timestamp", (col) => col.defaultTo(sql`NOW()`))
+    .addColumn("emailActivated", "boolean")
+    .addColumn("emailActivateCode", "text")
+    .addColumn("emailActivateCodeExpiresAt", "timestamp")
+    .addColumn("createdAt", "timestamp", (col) => col.defaultTo(sql`NOW()`))
+    .addColumn("updatedAt", "timestamp", (col) => col.defaultTo(sql`NOW()`))
     .execute()
 }
 

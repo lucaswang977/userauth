@@ -1,3 +1,5 @@
+import "server-only"
+
 import crypto from "crypto"
 import db from "@/l/dbconn"
 import envVariables from "@/l/env"
@@ -8,10 +10,13 @@ import { v4 as uuidv4 } from "uuid"
 export const generateSalt = () => crypto.randomBytes(16).toString("hex")
 
 export const hashPassword = (password: string, salt: string) =>
-  crypto.pbkdf2Sync(password, salt, 1000, 64, `sha512`).toString(`hex`)
+  crypto.pbkdf2Sync(password, salt, 1000, 64, "sha512").toString("hex")
 
 export const verifyPassword = (password: string, salt: string, hash: string) =>
   hash === hashPassword(password, salt)
+
+export const generateActivationCode = () =>
+  crypto.randomBytes(20).toString("hex").substring(0, 6)
 
 export const createUserByEmail = async (
   email: string,
@@ -102,7 +107,7 @@ export const getUserObjectById = async (
   return undefined
 }
 
-export const verifyJwt = (jwt: string) => {
+export const verifyAndDecodeJwt = (jwt: string) => {
   try {
     const payload = Jwt.verify(jwt, envVariables.JWT_SECRET) as JwtPayload
     return payload
@@ -118,9 +123,9 @@ export const verifyRefreshToken = async (
   const user = await getUserObjectById(userId)
   if (user) {
     if (
-      refreshToken === user.refresh_token &&
-      user.refresh_token_expires_at &&
-      user.refresh_token_expires_at > new Date(Date.now())
+      refreshToken === user.refreshToken &&
+      user.refreshTokenExpiresAt &&
+      user.refreshTokenExpiresAt > new Date(Date.now())
     ) {
       return true
     }
@@ -129,9 +134,9 @@ export const verifyRefreshToken = async (
   return false
 }
 
-export const generateJwt = (payload: JwtPayload, expiresInMSec?: number) =>
+export const generateJwt = (payload: JwtPayload, expiresInSec?: number) =>
   Jwt.sign(payload, envVariables.JWT_SECRET, {
-    expiresIn: expiresInMSec || envVariables.JWT_EXPIRES_SECS * 1000,
+    expiresIn: expiresInSec || envVariables.JWT_EXPIRES_SECS,
   })
 
 export const generateRefreshToken = () => {
@@ -150,8 +155,45 @@ export const updateRefreshToken = async (
     .updateTable("user")
     .where("id", "=", userId)
     .set({
-      refresh_token: refreshToken,
-      refresh_token_expires_at: expiresAt,
+      refreshToken,
+      refreshTokenExpiresAt: expiresAt,
+    })
+    .executeTakeFirst()
+
+  if (res.numUpdatedRows > 0) return true
+
+  return false
+}
+
+export const setUserActivationCode = async (
+  userId: string,
+  emailActivateCode: string,
+) => {
+  const res = await db
+    .updateTable("user")
+    .where("id", "=", userId)
+    .set({
+      emailActivateCode,
+      emailActivated: false,
+      emailActivateCodeExpiresAt: new Date(
+        Date.now() + envVariables.EMAIL_ACTIVATE_EXPIRES_SECS,
+      ),
+    })
+    .executeTakeFirst()
+
+  if (res.numUpdatedRows > 0) return true
+
+  return false
+}
+
+export const removeUserActivationStatus = async (userId: string) => {
+  const res = await db
+    .updateTable("user")
+    .where("id", "=", userId)
+    .set({
+      emailActivateCode: undefined,
+      emailActivated: true,
+      emailActivateCodeExpiresAt: undefined,
     })
     .executeTakeFirst()
 

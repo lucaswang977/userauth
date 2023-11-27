@@ -5,12 +5,15 @@ export interface UserTable {
   email: string
   password?: string
   salt?: string
-  first_name?: string
-  last_name?: string
-  refresh_token?: string
-  refresh_token_expires_at?: Date
-  created_at?: Generated<Date>
-  updated_at?: Generated<Date>
+  firstName?: string
+  lastName?: string
+  refreshToken?: string
+  refreshTokenExpiresAt?: Date
+  emailActivated?: boolean
+  emailActivateCode?: string
+  emailActivateCodeExpiresAt?: Date
+  createdAt?: Generated<Date>
+  updatedAt?: Generated<Date>
 }
 
 export type User = Selectable<UserTable>
@@ -26,6 +29,7 @@ export type LoginResult = {
   reason?: string
   token?: string
   refreshToken?: string
+  refreshExpires?: Date
 }
 
 export type JwtPayload = {

@@ -1,5 +1,6 @@
 import envVariables from "@/l/env"
 import { Database } from "@/l/types"
+// import { slogger } from "@/l/utility"
 import { Kysely, PostgresDialect } from "kysely"
 import { Pool } from "pg"
 
@@ -16,6 +17,12 @@ const dialect = new PostgresDialect({
 
 const db = new Kysely<Database>({
   dialect,
+  // log(event) {
+  //   if (event.level === "query") {
+  //     slogger.info(event.query.sql)
+  //     slogger.info(event.query.parameters)
+  //   }
+  // },
 })
 
 export default db
