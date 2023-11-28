@@ -1,3 +1,4 @@
+import db from "@/l/dbconn"
 import { JwtPayload, User } from "@/l/types"
 import {
   createUserByEmail,
@@ -160,4 +161,8 @@ describe("Generate refreshToken then update", () => {
       }
     }
   })
+})
+
+afterAll(async () => {
+  await db.destroy()
 })

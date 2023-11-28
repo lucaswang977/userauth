@@ -5,6 +5,7 @@ import db from "@/l/dbconn"
 import envVariables from "@/l/env"
 import { JwtPayload, User } from "@/l/types"
 import * as Jwt from "jsonwebtoken"
+import { cookies } from "next/headers"
 import { v4 as uuidv4 } from "uuid"
 
 export const generateSalt = () => crypto.randomBytes(16).toString("hex")
@@ -17,6 +18,30 @@ export const verifyPassword = (password: string, salt: string, hash: string) =>
 
 export const generateActivationCode = () =>
   crypto.randomBytes(20).toString("hex").substring(0, 6)
+
+export const sha256 = (text: string) =>
+  crypto.createHash("sha256").update(text).digest("hex")
+
+export const generateFingerprint = () => {
+  const fingerprint = crypto.randomBytes(64).toString("hex")
+  const hashedFingerprint = sha256(fingerprint)
+  return { fingerprint, hashedFingerprint }
+}
+
+export const verifyFingerprint = (fp: string, hashFp: string) =>
+  sha256(fp) === hashFp
+
+// https://github.com/vercel/next.js/issues/49259
+export const setFingerprintCookie = (fp: string) => {
+  // @ts-ignore
+  cookies.set({
+    name: "__Secure-Fgp",
+    value: fp,
+    path: "/",
+    maxAge: 60 * 60 * 8,
+    httpOnly: true,
+  })
+}
 
 export const createUserByEmail = async (
   email: string,

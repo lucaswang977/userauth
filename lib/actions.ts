@@ -1,20 +1,24 @@
+// https://hasura.io/blog/best-practices-of-using-jwt-with-graphql/
+
 import "server-only"
 
 import { LoginResult } from "@/l/types"
 import {
   createUserByEmail,
   generateActivationCode,
+  generateFingerprint,
   generateJwt,
   generateRefreshToken,
   getUserObjectByEmail,
   removeUserActivationStatus,
+  setFingerprintCookie,
   setUserActivationCode,
   updateRefreshToken,
   verifyPassword,
   verifyRefreshToken,
 } from "@/l/user"
 
-async function registerByEmailPwd(email: string, pwd: string) {
+async function registerNotActivatedUserByEmailPwd(email: string, pwd: string) {
   const user = await getUserObjectByEmail(email)
   if (user) {
     return { result: false, reason: "Email already registered." }
@@ -39,7 +43,7 @@ async function registerByEmailPwd(email: string, pwd: string) {
   return { result: false, reason: "User registration failed." }
 }
 
-async function activateEmailByCode(email: string, code: string) {
+async function activateUserByActivationCode(email: string, code: string) {
   const user = await getUserObjectByEmail(email)
   if (!user) {
     return { result: false, reason: "Email has not been registered yet." }
@@ -59,7 +63,6 @@ async function activateEmailByCode(email: string, code: string) {
   return { result: false, reason: "Email activation failed." }
 }
 
-// TODO: Add fingerprint for refreshToken
 async function loginByEmailPwd(
   email: string,
   pwd: string,
@@ -73,7 +76,12 @@ async function loginByEmailPwd(
       if (!emailActivated) {
         return { result: false, reason: "User not activated yet." }
       }
-      const token = generateJwt({ userId: user.id })
+      const { fingerprint, hashedFingerprint } = generateFingerprint()
+      setFingerprintCookie(fingerprint)
+      const token = generateJwt({
+        userId: user.id,
+        hashedFingerprint,
+      })
       const { refreshToken, expiresAt } = generateRefreshToken()
 
       const res = await updateRefreshToken(id, refreshToken, expiresAt)
@@ -90,11 +98,17 @@ async function refreshJwt(
   refreshToken: string,
 ): Promise<LoginResult> {
   const result = await verifyRefreshToken(userId, refreshToken)
+  // TODO: Check the fingerprint
   if (result) {
     const res = generateRefreshToken()
     await updateRefreshToken(userId, res.refreshToken, res.expiresAt)
-    const token = generateJwt({ userId })
 
+    const { fingerprint, hashedFingerprint } = generateFingerprint()
+    setFingerprintCookie(fingerprint)
+    const token = generateJwt({
+      userId,
+      hashedFingerprint,
+    })
     return {
       result: true,
       token,
@@ -106,4 +120,9 @@ async function refreshJwt(
   return { result: false, reason: "Refresh token verification failed." }
 }
 
-export { loginByEmailPwd, refreshJwt, registerByEmailPwd, activateEmailByCode }
+export {
+  loginByEmailPwd,
+  refreshJwt,
+  registerNotActivatedUserByEmailPwd,
+  activateUserByActivationCode,
+}

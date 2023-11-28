@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest --watch --detectOpenHandles",
+    "test:coverage": "jest --coverage",
     "migrate": "tsx ./scripts/migrate.ts | pino-pretty",
     "e2e": "docker run -it --platform linux/amd64 -v devenv-config_vwork:/root/work --network devenv-config_default --entrypoint=cypress cypress/included:latest run --e2e --project $PWD --config baseUrl='http://devenv:3000'"
   },
