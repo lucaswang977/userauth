@@ -6,6 +6,7 @@ import envVariables from "@/l/env"
 import { JwtPayload, User } from "@/l/types"
 import * as Jwt from "jsonwebtoken"
 import { cookies } from "next/headers"
+import * as nodemailer from "nodemailer"
 import { v4 as uuidv4 } from "uuid"
 
 export const generateSalt = () => crypto.randomBytes(16).toString("hex")
@@ -197,7 +198,6 @@ export const generateJwt = (payload: JwtPayload, expiresInSec?: number) =>
 export const generateRefreshToken = () => {
   const refreshToken = uuidv4()
   const expiresAt = new Date(Date.now() + envVariables.JWT_REFRESH_EXPIRES_SECS)
-
   return { refreshToken, expiresAt }
 }
 
@@ -253,6 +253,21 @@ export const removeUserActivationStatus = async (userId: string) => {
     .executeTakeFirst()
 
   if (res.numUpdatedRows > 0) return true
+
+  return false
+}
+
+export const sendActivationCodeByMail = async (email: string, code: string) => {
+  const transporter = nodemailer.createTransport(envVariables.EMAIL_SERVER)
+  const res = await transporter.sendMail({
+    from: envVariables.EMAIL_FROM,
+    to: email,
+    subject: "One Time Activation Code",
+    text: `This is your one time activation code: ${code.toUpperCase()}`,
+    html: `<p>This is your one time activation code: <b>${code.toUpperCase()}</b></p>`,
+  })
+
+  if (res.accepted.length > 0) return true
 
   return false
 }

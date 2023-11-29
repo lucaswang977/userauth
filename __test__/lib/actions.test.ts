@@ -27,6 +27,24 @@ jest.mock("next/headers", () => {
   }
 })
 
+let activationCode: string | undefined
+jest.mock("nodemailer", () => {
+  const originalModule = jest.requireActual("nodemailer")
+
+  return {
+    ...originalModule,
+    createTransport: () => ({
+      sendMail: (obj: { to: string; text: string }) => {
+        const match = obj.text.match(
+          /(?:This is your one time activation code: )(\w+)/,
+        )
+        activationCode = match ? match[1] : undefined
+        return { accepted: [obj.to] }
+      },
+    }),
+  }
+})
+
 const email = "test@example.com"
 const pwd = "temporary_password"
 
@@ -39,22 +57,23 @@ afterAll(async () => {
   await db.destroy()
 })
 
-describe("User login action", () => {
-  let userId: string | undefined
-
+describe("User register and activate action", () => {
   test("Test register() and activate()", async () => {
     const registerRes = await registerNotActivatedUserByEmailPwd(email, pwd)
     expect(registerRes.result).toBeTruthy()
 
-    // TODO: Depending on activationCode included in response
-    const code = registerRes.activationCode
-    expect(code).toBeDefined()
-    if (code) {
-      const activateRes = await activateUserByActivationCode(email, code)
+    expect(activationCode).toBeDefined()
+    if (activationCode) {
+      const activateRes = await activateUserByActivationCode(
+        email,
+        activationCode,
+      )
       expect(activateRes.result).toBeTruthy()
     }
   })
+})
 
+describe("User login action", () => {
   test("Test loginByEmailPwd()", async () => {
     const { result, token, refreshToken } = await loginByEmailPwd(email, pwd)
     expect(result).toBeTruthy()
@@ -64,7 +83,7 @@ describe("User login action", () => {
       const decoded = Jwt.decode(token) as Jwt.JwtPayload
       if (decoded) {
         if (decoded.exp) expect(decoded.exp * 1000).toBeGreaterThan(Date.now())
-        userId = (decoded as JwtPayload).userId
+        const { userId } = decoded as JwtPayload
         expect(userId).toBeDefined()
       }
     }

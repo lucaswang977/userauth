@@ -13,6 +13,7 @@ import {
   getFingprintCookie,
   getUserObjectByEmail,
   removeUserActivationStatus,
+  sendActivationCodeByMail,
   setFingerprintCookie,
   setUserActivationCode,
   updateRefreshToken,
@@ -37,8 +38,8 @@ async function registerNotActivatedUserByEmailPwd(email: string, pwd: string) {
         activationCode,
       )
       if (activateRes) {
-        // TODO: Send the activation email, remove the activationCode here
-        return { result: true, activationCode }
+        const res = await sendActivationCodeByMail(email, activationCode)
+        return { result: res }
       }
     }
   }
@@ -56,7 +57,7 @@ async function activateUserByActivationCode(email: string, code: string) {
     return { result: false, reason: "Email has already been activated." }
   }
 
-  if (user.emailActivateCode === code) {
+  if (user.emailActivateCode?.toLowerCase() === code.toLowerCase()) {
     const activateRes = await removeUserActivationStatus(user.id)
     if (activateRes) {
       return { result: true }

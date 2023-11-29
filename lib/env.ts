@@ -10,6 +10,8 @@ const envSchema = z.object({
   JWT_EXPIRES_SECS: z.preprocess(Number, z.number().default(300)),
   JWT_REFRESH_EXPIRES_SECS: z.preprocess(Number, z.number().default(3600)),
   EMAIL_ACTIVATE_EXPIRES_SECS: z.preprocess(Number, z.number().default(300)),
+  EMAIL_SERVER: z.string().trim().min(1),
+  EMAIL_FROM: z.string().trim().min(1),
 })
 
 const envSchemaParser = envSchema.safeParse({
@@ -22,6 +24,8 @@ const envSchemaParser = envSchema.safeParse({
   JWT_EXPIRES_SECS: process.env.JWT_EXPIRES_SECS,
   JWT_REFRESH_EXPIRES_SECS: process.env.JWT_REFRESH_EXPIRES_SECS,
   EMAIL_ACTIVATE_EXPIRES_SECS: process.env.EMAIL_ACTIVATE_EXPIRES_SECS,
+  EMAIL_SERVER: process.env.EMAIL_SERVER,
+  EMAIL_FROM: process.env.EMAIL_FROM,
 })
 
 if (!envSchemaParser.success) {
