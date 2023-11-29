@@ -2,9 +2,12 @@ import db from "@/l/dbconn"
 import { JwtPayload, User } from "@/l/types"
 import {
   createUserByEmail,
+  decodeAndVerifyJwt,
+  deleteUserByEmail,
   deleteUserById,
   findUserByEmail,
   findUserById,
+  generateFingerprint,
   generateJwt,
   generateRefreshToken,
   generateSalt,
@@ -12,13 +15,25 @@ import {
   getUserObjectById,
   hashPassword,
   updateRefreshToken,
-  verifyAndDecodeJwt,
+  verifyFingerprint,
   verifyPassword,
   verifyRefreshToken,
 } from "@/l/user"
 import { delay } from "@/l/utility"
 
 jest.mock("uuid", () => ({ v4: () => "0a613541-ba97-47f5-84e3-fdc35a09717c" }))
+
+const email = "test@example.com"
+const pwd = "temporary_password"
+
+beforeAll(async () => {
+  await deleteUserByEmail(email)
+})
+
+afterAll(async () => {
+  await deleteUserByEmail(email)
+  await db.destroy()
+})
 
 describe("Password hashing", () => {
   test("Test generateSalt() and hashPassword()", async () => {
@@ -31,25 +46,29 @@ describe("Password hashing", () => {
 })
 
 describe("Jwt verification & refresh", () => {
+  const { fingerprint, hashedFingerprint } = generateFingerprint()
   const payload: JwtPayload = {
     userId: "abcd",
+    hashedFingerprint,
   }
 
   test("Test generateJwt() and verifyAndDecodeJwt() and JWT expiration", async () => {
     const jwt = generateJwt(payload)
-    const decoded = verifyAndDecodeJwt(jwt) as JwtPayload
+    const decoded = decodeAndVerifyJwt(jwt) as JwtPayload
     expect(decoded.userId).toEqual(payload.userId)
 
     const expiresJwt = generateJwt(payload, 1)
     await delay(1100)
-    const decodedExpiresJwt = verifyAndDecodeJwt(expiresJwt) as JwtPayload
+    const decodedExpiresJwt = decodeAndVerifyJwt(expiresJwt) as JwtPayload
     expect(decodedExpiresJwt).toBeUndefined()
+  })
+
+  test("Test verifyFingerprint()", () => {
+    expect(verifyFingerprint(fingerprint, hashedFingerprint)).toBeTruthy()
   })
 })
 
 describe("Create user, find user, then delete", () => {
-  const email = "test@example.com"
-  const pwd = "temporary_password"
   let user: User | undefined
 
   beforeAll(async () => {
@@ -100,8 +119,6 @@ describe("Create user, find user, then delete", () => {
 })
 
 describe("Generate refreshToken then update", () => {
-  const email = "test@example.com"
-  const pwd = "temporary_password"
   let user: User | undefined
 
   beforeAll(async () => {
@@ -142,7 +159,7 @@ describe("Generate refreshToken then update", () => {
     if (user) {
       expect(user.refreshToken).toBeDefined()
       if (user.refreshToken) {
-        const verifyRes = await verifyRefreshToken(user.id, user.refreshToken)
+        const verifyRes = await verifyRefreshToken(user.refreshToken, user.id)
         expect(verifyRes).toBeTruthy()
 
         const updateRes = await updateRefreshToken(
@@ -161,8 +178,4 @@ describe("Generate refreshToken then update", () => {
       }
     }
   })
-})
-
-afterAll(async () => {
-  await db.destroy()
 })

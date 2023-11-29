@@ -33,14 +33,18 @@ export const verifyFingerprint = (fp: string, hashFp: string) =>
 
 // https://github.com/vercel/next.js/issues/49259
 export const setFingerprintCookie = (fp: string) => {
-  // @ts-ignore
-  cookies.set({
+  cookies().set({
     name: "__Secure-Fgp",
     value: fp,
     path: "/",
     maxAge: 60 * 60 * 8,
     httpOnly: true,
   })
+}
+
+export const getFingprintCookie = () => {
+  const res = cookies().get("__Secure-Fgp")
+  return res ? res.value : undefined
 }
 
 export const createUserByEmail = async (
@@ -64,7 +68,14 @@ export const createUserByEmail = async (
 }
 
 export const deleteUserById = async (id: string): Promise<boolean> => {
-  const res = await db.deleteFrom("user").where("user.id", "=", id).execute()
+  const res = await db.deleteFrom("user").where("id", "=", id).execute()
+  if (res.length > 0) return true
+
+  return false
+}
+
+export const deleteUserByEmail = async (email: string): Promise<boolean> => {
+  const res = await db.deleteFrom("user").where("email", "=", email).execute()
   if (res.length > 0) return true
 
   return false
@@ -132,7 +143,23 @@ export const getUserObjectById = async (
   return undefined
 }
 
-export const verifyAndDecodeJwt = (jwt: string) => {
+export const getUserObjectByRefreshToken = async (
+  refreshToken: string,
+): Promise<User | undefined> => {
+  const res = await db
+    .selectFrom("user")
+    .selectAll()
+    .where("refreshToken", "=", refreshToken)
+    .execute()
+
+  if (res.length > 0) {
+    return res[0] as User
+  }
+
+  return undefined
+}
+
+export const decodeAndVerifyJwt = (jwt: string) => {
   try {
     const payload = Jwt.verify(jwt, envVariables.JWT_SECRET) as JwtPayload
     return payload
@@ -141,14 +168,17 @@ export const verifyAndDecodeJwt = (jwt: string) => {
   }
 }
 
+export const decodeWithoutVerifyJwt = (jwt: string) => Jwt.decode(jwt)
+
 export const verifyRefreshToken = async (
-  userId: string,
   refreshToken: string,
+  userId: string,
 ) => {
-  const user = await getUserObjectById(userId)
+  const user = await getUserObjectByRefreshToken(refreshToken)
   if (user) {
     if (
       refreshToken === user.refreshToken &&
+      userId === user.id &&
       user.refreshTokenExpiresAt &&
       user.refreshTokenExpiresAt > new Date(Date.now())
     ) {

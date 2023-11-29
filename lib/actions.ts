@@ -2,18 +2,21 @@
 
 import "server-only"
 
-import { LoginResult } from "@/l/types"
+import { JwtPayload, LoginResult } from "@/l/types"
 import {
   createUserByEmail,
+  decodeWithoutVerifyJwt,
   generateActivationCode,
   generateFingerprint,
   generateJwt,
   generateRefreshToken,
+  getFingprintCookie,
   getUserObjectByEmail,
   removeUserActivationStatus,
   setFingerprintCookie,
   setUserActivationCode,
   updateRefreshToken,
+  verifyFingerprint,
   verifyPassword,
   verifyRefreshToken,
 } from "@/l/user"
@@ -76,14 +79,16 @@ async function loginByEmailPwd(
       if (!emailActivated) {
         return { result: false, reason: "User not activated yet." }
       }
+
+      // Save fingerprint in cookie and hashed one in the token
       const { fingerprint, hashedFingerprint } = generateFingerprint()
       setFingerprintCookie(fingerprint)
       const token = generateJwt({
         userId: user.id,
         hashedFingerprint,
       })
-      const { refreshToken, expiresAt } = generateRefreshToken()
 
+      const { refreshToken, expiresAt } = generateRefreshToken()
       const res = await updateRefreshToken(id, refreshToken, expiresAt)
       if (res)
         return { result: true, token, refreshToken, refreshExpires: expiresAt }
@@ -94,26 +99,44 @@ async function loginByEmailPwd(
 }
 
 async function refreshJwt(
-  userId: string,
   refreshToken: string,
+  token: string,
 ): Promise<LoginResult> {
-  const result = await verifyRefreshToken(userId, refreshToken)
-  // TODO: Check the fingerprint
-  if (result) {
-    const res = generateRefreshToken()
-    await updateRefreshToken(userId, res.refreshToken, res.expiresAt)
+  // No need to check JWT's expiration, we just extract the data
+  const decoded = decodeWithoutVerifyJwt(token)
+  if (decoded) {
+    const { userId, hashedFingerprint } = decoded as JwtPayload
 
-    const { fingerprint, hashedFingerprint } = generateFingerprint()
-    setFingerprintCookie(fingerprint)
-    const token = generateJwt({
-      userId,
-      hashedFingerprint,
-    })
-    return {
-      result: true,
-      token,
-      refreshToken: res.refreshToken,
-      refreshExpires: res.expiresAt,
+    // Check the fingerprint from cookie and the hashed one saved in the token
+    const cookieFingerprint = getFingprintCookie()
+    if (cookieFingerprint) {
+      const fingerprintVerifyRes = verifyFingerprint(
+        cookieFingerprint,
+        hashedFingerprint,
+      )
+
+      // Check the refreshToken from db
+      const refreshTokenVerifyRes = await verifyRefreshToken(
+        refreshToken,
+        userId,
+      )
+      if (refreshTokenVerifyRes && fingerprintVerifyRes) {
+        const res = generateRefreshToken()
+        await updateRefreshToken(userId, res.refreshToken, res.expiresAt)
+
+        const fp = generateFingerprint()
+        setFingerprintCookie(fp.fingerprint)
+        const newToken = generateJwt({
+          userId,
+          hashedFingerprint: fp.hashedFingerprint,
+        })
+        return {
+          result: true,
+          token: newToken,
+          refreshToken: res.refreshToken,
+          refreshExpires: res.expiresAt,
+        }
+      }
     }
   }
 

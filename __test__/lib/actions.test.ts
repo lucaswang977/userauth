@@ -6,33 +6,41 @@ import {
 } from "@/l/actions"
 import db from "@/l/dbconn"
 import { JwtPayload } from "@/l/types"
-import { deleteUserById } from "@/l/user"
+import { deleteUserByEmail } from "@/l/user"
 import { delay } from "@/l/utility"
-import { jwtDecode } from "jwt-decode"
+import * as Jwt from "jsonwebtoken"
 
 jest.mock("uuid", () => ({ v4: () => "0a613541-ba97-47f5-84e3-fdc35a09717c" }))
+
+// Mock cookies setting and getting for passing the fingerprint testing
+let fingerprint: string
 jest.mock("next/headers", () => {
   const originalModule = jest.requireActual("next/headers")
   return {
     ...originalModule,
-    cookies: {
-      set: jest.fn(),
-    },
+    cookies: () => ({
+      set: (obj: { name: string; value: string }) => {
+        fingerprint = obj.value
+      },
+      get: () => ({ value: fingerprint }),
+    }),
   }
 })
 
-describe("User login action", () => {
-  const email = "test@example.com"
-  const pwd = "temporary_password"
-  let userId: string | undefined
+const email = "test@example.com"
+const pwd = "temporary_password"
 
-  afterAll(async () => {
-    expect(userId).toBeDefined()
-    if (userId) {
-      const res = await deleteUserById(userId)
-      expect(res).toBeTruthy()
-    }
-  })
+beforeAll(async () => {
+  await deleteUserByEmail(email)
+})
+
+afterAll(async () => {
+  await deleteUserByEmail(email)
+  await db.destroy()
+})
+
+describe("User login action", () => {
+  let userId: string | undefined
 
   test("Test register() and activate()", async () => {
     const registerRes = await registerNotActivatedUserByEmailPwd(email, pwd)
@@ -53,7 +61,7 @@ describe("User login action", () => {
     expect(token).toBeDefined()
     expect(refreshToken).toBeDefined()
     if (token) {
-      const decoded = jwtDecode(token)
+      const decoded = Jwt.decode(token) as Jwt.JwtPayload
       if (decoded) {
         if (decoded.exp) expect(decoded.exp * 1000).toBeGreaterThan(Date.now())
         userId = (decoded as JwtPayload).userId
@@ -74,11 +82,7 @@ describe("User login action", () => {
 
     await delay(500)
     if (token && refreshToken) {
-      const decoded = jwtDecode(token)
-      const refreshRes = await refreshJwt(
-        (decoded as JwtPayload).userId,
-        refreshToken,
-      )
+      const refreshRes = await refreshJwt(refreshToken, token)
 
       expect(refreshRes.result).toBeTruthy()
       expect(refreshRes.token).toBeDefined()
@@ -90,8 +94,4 @@ describe("User login action", () => {
       }
     }
   })
-})
-
-afterAll(async () => {
-  await db.destroy()
 })

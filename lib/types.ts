@@ -34,5 +34,5 @@ export type LoginResult = {
 
 export type JwtPayload = {
   userId: string
-  // hashedFingerprint: string
+  hashedFingerprint: string
 }
