@@ -18,7 +18,7 @@ export const verifyPassword = (password: string, salt: string, hash: string) =>
   hash === hashPassword(password, salt)
 
 export const generateActivationCode = () =>
-  crypto.randomBytes(20).toString("hex").substring(0, 6)
+  crypto.randomBytes(32).toString("hex").substring(0, 6)
 
 export const sha256 = (text: string) =>
   crypto.createHash("sha256").update(text).digest("hex")
@@ -47,6 +47,9 @@ export const getFingprintCookie = () => {
   const res = cookies().get("__Secure-Fgp")
   return res ? res.value : undefined
 }
+
+export const generatePasswordResetCode = () =>
+  crypto.randomBytes(64).toString("hex")
 
 export const createUserByEmail = async (
   email: string,
@@ -220,7 +223,7 @@ export const updateRefreshToken = async (
   return false
 }
 
-export const setUserActivationCode = async (
+export const updateUserActivationCode = async (
   userId: string,
   emailActivateCode: string,
 ) => {
@@ -241,7 +244,7 @@ export const setUserActivationCode = async (
   return false
 }
 
-export const removeUserActivationStatus = async (userId: string) => {
+export const clearUserActivationStatus = async (userId: string) => {
   const res = await db
     .updateTable("user")
     .where("id", "=", userId)
@@ -268,6 +271,98 @@ export const sendActivationCodeByMail = async (email: string, code: string) => {
   })
 
   if (res.accepted.length > 0) return true
+
+  return false
+}
+
+export const updatePassword = async (
+  userId: string,
+  password: string,
+): Promise<boolean> => {
+  const salt = generateSalt()
+  const hashedPwd = hashPassword(password, salt)
+
+  const res = await db
+    .updateTable("user")
+    .where("id", "=", userId)
+    .set({
+      password: hashedPwd,
+      salt,
+    })
+    .executeTakeFirst()
+
+  if (res.numUpdatedRows > 0) return true
+
+  return false
+}
+
+export const updatePasswordResetCode = async (
+  userId: string,
+  resetCode: string,
+) => {
+  const res = await db
+    .updateTable("user")
+    .where("id", "=", userId)
+    .set({
+      passwordResetCode: resetCode,
+      passwordResetCodeExpiresAt: new Date(
+        Date.now() + envVariables.PASSWORD_RESET_CODE_EXPIRES_SECS,
+      ),
+    })
+    .executeTakeFirst()
+
+  if (res.numUpdatedRows > 0) return true
+
+  return false
+}
+
+export const sendPasswordResetLinkByMail = async (
+  email: string,
+  link: string,
+) => {
+  const transporter = nodemailer.createTransport(envVariables.EMAIL_SERVER)
+  const res = await transporter.sendMail({
+    from: envVariables.EMAIL_FROM,
+    to: email,
+    subject: "Password Reset Link",
+    text: `You can click here to reset your password: ${link}`,
+    html: `<p>You can click here to reset your password: <a href="${link}">Reset Password</a></p>`,
+  })
+
+  if (res.accepted.length > 0) return true
+
+  return false
+}
+
+export const verifyPasswordResetCode = async (
+  userId: string,
+  resetCode: string,
+) => {
+  const userObj = await getUserObjectById(userId)
+  if (
+    userObj &&
+    userObj.passwordResetCode &&
+    resetCode === userObj.passwordResetCode &&
+    userObj.passwordResetCodeExpiresAt &&
+    userObj.passwordResetCodeExpiresAt.getTime() > Date.now()
+  ) {
+    return true
+  }
+
+  return false
+}
+
+export const clearPasswordResetCode = async (userId: string) => {
+  const res = await db
+    .updateTable("user")
+    .where("id", "=", userId)
+    .set({
+      passwordResetCode: "",
+      passwordResetCodeExpiresAt: undefined,
+    })
+    .executeTakeFirst()
+
+  if (res.numUpdatedRows > 0) return true
 
   return false
 }

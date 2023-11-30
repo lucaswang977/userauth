@@ -1,12 +1,19 @@
 import {
   activateUserByActivationCode,
+  changePassword,
+  changPasswordWithResetCode,
   loginByEmailPwd,
   refreshJwt,
   registerNotActivatedUserByEmailPwd,
+  resetPassword,
 } from "@/l/actions"
 import db from "@/l/dbconn"
 import { JwtPayload } from "@/l/types"
-import { deleteUserByEmail } from "@/l/user"
+import {
+  deleteUserByEmail,
+  getUserObjectByEmail,
+  verifyPassword,
+} from "@/l/user"
 import { delay } from "@/l/utility"
 import * as Jwt from "jsonwebtoken"
 
@@ -28,6 +35,9 @@ jest.mock("next/headers", () => {
 })
 
 let activationCode: string | undefined
+let passwordResetCode: string | undefined
+
+// TODO: Match pattern should be more flexible
 jest.mock("nodemailer", () => {
   const originalModule = jest.requireActual("nodemailer")
 
@@ -35,10 +45,20 @@ jest.mock("nodemailer", () => {
     ...originalModule,
     createTransport: () => ({
       sendMail: (obj: { to: string; text: string }) => {
-        const match = obj.text.match(
+        const matchActivationCode = obj.text.match(
           /(?:This is your one time activation code: )(\w+)/,
         )
-        activationCode = match ? match[1] : undefined
+        activationCode = matchActivationCode
+          ? matchActivationCode[1]
+          : undefined
+
+        const matchPasswordResetCode = obj.text.match(
+          /(?:You can click here to reset your password: )https:\/\/(\w+)/,
+        )
+
+        passwordResetCode = matchPasswordResetCode
+          ? matchPasswordResetCode[1]
+          : undefined
         return { accepted: [obj.to] }
       },
     }),
@@ -47,6 +67,8 @@ jest.mock("nodemailer", () => {
 
 const email = "test@example.com"
 const pwd = "temporary_password"
+const newPwd = "new_password"
+let currentToken: string | undefined
 
 beforeAll(async () => {
   await deleteUserByEmail(email)
@@ -80,6 +102,8 @@ describe("User login action", () => {
     expect(token).toBeDefined()
     expect(refreshToken).toBeDefined()
     if (token) {
+      currentToken = token
+
       const decoded = Jwt.decode(token) as Jwt.JwtPayload
       if (decoded) {
         if (decoded.exp) expect(decoded.exp * 1000).toBeGreaterThan(Date.now())
@@ -110,6 +134,44 @@ describe("User login action", () => {
         expect(
           refreshRes.refreshExpires.getTime() - refreshExpires.getTime(),
         ).toBeGreaterThan(500)
+
+        currentToken = refreshRes.token
+      }
+    }
+  })
+})
+
+describe("User change password action", () => {
+  test("Test changePassword()", async () => {
+    expect(currentToken).toBeDefined()
+    if (currentToken) {
+      const updateRes = await changePassword(currentToken, pwd, newPwd)
+      expect(updateRes.result).toBeTruthy()
+
+      const updateAgainRes = await changePassword(currentToken, pwd, newPwd)
+      expect(updateAgainRes.result).toBeFalsy()
+    }
+  })
+
+  test("Test resetPassword()", async () => {
+    const resetRes = await resetPassword(email)
+    expect(resetRes.result).toBeTruthy()
+
+    expect(passwordResetCode).toBeTruthy()
+
+    if (passwordResetCode) {
+      const updateRes = await changPasswordWithResetCode(
+        email,
+        passwordResetCode,
+        pwd,
+      )
+      expect(updateRes.result).toBeTruthy()
+
+      const user = await getUserObjectByEmail(email)
+      expect(user).toBeDefined()
+      if (user && user.salt && user.password) {
+        const verifyRes = verifyPassword(pwd, user.salt, user.password)
+        expect(verifyRes).toBeTruthy()
       }
     }
   })

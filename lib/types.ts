@@ -12,6 +12,8 @@ export interface UserTable {
   emailActivated?: boolean
   emailActivateCode?: string
   emailActivateCodeExpiresAt?: Date
+  passwordResetCode?: string
+  passwordResetCodeExpiresAt?: Date
   createdAt?: Generated<Date>
   updatedAt?: Generated<Date>
 }
@@ -24,9 +26,17 @@ export interface Database {
   user: UserTable
 }
 
-export type LoginResult = {
-  result: boolean
-  reason?: string
+export type ActionResult =
+  | {
+      result: true
+      reason?: string
+    }
+  | {
+      result: false
+      reason: string
+    }
+
+export type LoginResult = ActionResult & {
   token?: string
   refreshToken?: string
   refreshExpires?: Date

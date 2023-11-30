@@ -1,22 +1,25 @@
 import db from "@/l/dbconn"
 import { JwtPayload, User } from "@/l/types"
 import {
+  clearPasswordResetCode,
   createUserByEmail,
   decodeAndVerifyJwt,
   deleteUserByEmail,
-  deleteUserById,
-  findUserByEmail,
   findUserById,
   generateFingerprint,
   generateJwt,
+  generatePasswordResetCode,
   generateRefreshToken,
   generateSalt,
   getUserObjectByEmail,
   getUserObjectById,
   hashPassword,
+  updatePassword,
+  updatePasswordResetCode,
   updateRefreshToken,
   verifyFingerprint,
   verifyPassword,
+  verifyPasswordResetCode,
   verifyRefreshToken,
 } from "@/l/user"
 import { delay } from "@/l/utility"
@@ -25,13 +28,24 @@ jest.mock("uuid", () => ({ v4: () => "0a613541-ba97-47f5-84e3-fdc35a09717c" }))
 
 const email = "test@example.com"
 const pwd = "temporary_password"
+let user: User | undefined
 
 beforeAll(async () => {
   await deleteUserByEmail(email)
 })
 
-afterAll(async () => {
+beforeEach(async () => {
+  const res = await createUserByEmail(email, pwd)
+  expect(res).toBeTruthy()
+  user = await getUserObjectByEmail(email)
+  expect(user).toBeDefined()
+})
+
+afterEach(async () => {
   await deleteUserByEmail(email)
+})
+
+afterAll(async () => {
   await db.destroy()
 })
 
@@ -69,25 +83,6 @@ describe("Jwt verification & refresh", () => {
 })
 
 describe("Create user, find user, then delete", () => {
-  let user: User | undefined
-
-  beforeAll(async () => {
-    const res = await createUserByEmail(email, pwd)
-    expect(res).toBeTruthy()
-    user = await getUserObjectByEmail(email)
-    expect(user).toBeDefined()
-  })
-
-  afterAll(async () => {
-    expect(user).toBeDefined()
-    if (user) {
-      const deleteRes = await deleteUserById(user.id)
-      expect(deleteRes).toBeTruthy()
-      const findRes = await findUserByEmail(email)
-      expect(findRes).toBeUndefined()
-    }
-  })
-
   test("Test findUserByEmail() / findUserById()", async () => {
     expect(user).toBeDefined()
     if (user) {
@@ -119,24 +114,8 @@ describe("Create user, find user, then delete", () => {
 })
 
 describe("Generate refreshToken then update", () => {
-  let user: User | undefined
-
-  beforeAll(async () => {
-    const res = await createUserByEmail(email, pwd)
-    expect(res).toBeTruthy()
-    user = await getUserObjectByEmail(email)
-    expect(user).toBeDefined()
-  })
-
-  afterAll(async () => {
-    expect(user).toBeDefined()
-    if (user) {
-      const deleteRes = await deleteUserById(user.id)
-      expect(deleteRes).toBeTruthy()
-    }
-  })
-
   test("Test generateRefreshToken() and updateRefreshToken()", async () => {
+    expect(user).toBeDefined()
     if (user) {
       const { refreshToken, expiresAt } = generateRefreshToken()
       // mocked uuid
@@ -154,7 +133,6 @@ describe("Generate refreshToken then update", () => {
   })
 
   test("Test verifyRefreshToken() with expiration", async () => {
-    user = await getUserObjectByEmail(email)
     expect(user).toBeDefined()
     if (user) {
       expect(user.refreshToken).toBeDefined()
@@ -176,6 +154,52 @@ describe("Generate refreshToken then update", () => {
         )
         expect(verifyAgainRes).toBeFalsy()
       }
+    }
+  })
+
+  test("Test updatePassword()", async () => {
+    expect(user).toBeDefined()
+    const newPwdStr = "new_password"
+    if (user) {
+      const oldHashedPwd = user.password
+      expect(oldHashedPwd).toBeDefined()
+      const oldSalt = user.salt
+      expect(oldSalt).toBeDefined()
+
+      const updateRes = await updatePassword(user.id, newPwdStr)
+      expect(updateRes).toBeTruthy()
+
+      const newUser = await getUserObjectById(user.id)
+      expect(newUser).toBeDefined()
+      if (newUser) {
+        const newHashedPwd = newUser.password
+        expect(newHashedPwd).toBeDefined()
+        expect(oldHashedPwd !== newHashedPwd).toBeTruthy()
+        const newSalt = newUser.salt
+        expect(newSalt).toBeDefined()
+        expect(oldSalt !== newSalt).toBeTruthy()
+        if (newHashedPwd && newSalt) {
+          const verifyRes = verifyPassword(newPwdStr, newSalt, newHashedPwd)
+          expect(verifyRes).toBeTruthy()
+        }
+      }
+    }
+  })
+
+  test("Test resetPassword()", async () => {
+    const resetCode = generatePasswordResetCode()
+    expect(resetCode.length > 64)
+
+    expect(user).toBeDefined()
+    if (user) {
+      const updateRes = await updatePasswordResetCode(user.id, resetCode)
+      expect(updateRes).toBeTruthy()
+
+      const verifyRes = await verifyPasswordResetCode(user.id, resetCode)
+      expect(verifyRes).toBeTruthy()
+
+      const clearRes = await clearPasswordResetCode(user.id)
+      expect(clearRes).toBeTruthy()
     }
   })
 })

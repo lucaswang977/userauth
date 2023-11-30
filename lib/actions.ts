@@ -1,28 +1,41 @@
-// https://hasura.io/blog/best-practices-of-using-jwt-with-graphql/
+// References:
+// - https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html
+// - https://hasura.io/blog/best-practices-of-using-jwt-with-graphql/
 
 import "server-only"
 
-import { JwtPayload, LoginResult } from "@/l/types"
+import { ActionResult, JwtPayload, LoginResult } from "@/l/types"
 import {
+  clearUserActivationStatus,
   createUserByEmail,
+  decodeAndVerifyJwt,
   decodeWithoutVerifyJwt,
   generateActivationCode,
   generateFingerprint,
   generateJwt,
+  generatePasswordResetCode,
   generateRefreshToken,
   getFingprintCookie,
   getUserObjectByEmail,
-  removeUserActivationStatus,
+  getUserObjectById,
+  hashPassword,
   sendActivationCodeByMail,
+  sendPasswordResetLinkByMail,
   setFingerprintCookie,
-  setUserActivationCode,
+  updatePassword,
+  updatePasswordResetCode,
   updateRefreshToken,
+  updateUserActivationCode,
   verifyFingerprint,
   verifyPassword,
+  verifyPasswordResetCode,
   verifyRefreshToken,
 } from "@/l/user"
 
-async function registerNotActivatedUserByEmailPwd(email: string, pwd: string) {
+async function registerNotActivatedUserByEmailPwd(
+  email: string,
+  pwd: string,
+): Promise<ActionResult> {
   const user = await getUserObjectByEmail(email)
   if (user) {
     return { result: false, reason: "Email already registered." }
@@ -33,13 +46,14 @@ async function registerNotActivatedUserByEmailPwd(email: string, pwd: string) {
     const newUser = await getUserObjectByEmail(email)
     if (newUser) {
       const activationCode = generateActivationCode()
-      const activateRes = await setUserActivationCode(
+      const activateRes = await updateUserActivationCode(
         newUser.id,
         activationCode,
       )
       if (activateRes) {
         const res = await sendActivationCodeByMail(email, activationCode)
-        return { result: res }
+        if (res) return { result: true }
+        return { result: false, reason: "Send activation mail failed." }
       }
     }
   }
@@ -47,7 +61,10 @@ async function registerNotActivatedUserByEmailPwd(email: string, pwd: string) {
   return { result: false, reason: "User registration failed." }
 }
 
-async function activateUserByActivationCode(email: string, code: string) {
+async function activateUserByActivationCode(
+  email: string,
+  code: string,
+): Promise<ActionResult> {
   const user = await getUserObjectByEmail(email)
   if (!user) {
     return { result: false, reason: "Email has not been registered yet." }
@@ -58,7 +75,7 @@ async function activateUserByActivationCode(email: string, code: string) {
   }
 
   if (user.emailActivateCode?.toLowerCase() === code.toLowerCase()) {
-    const activateRes = await removeUserActivationStatus(user.id)
+    const activateRes = await clearUserActivationStatus(user.id)
     if (activateRes) {
       return { result: true }
     }
@@ -144,9 +161,78 @@ async function refreshJwt(
   return { result: false, reason: "Refresh token verification failed." }
 }
 
+async function changePassword(
+  token: string,
+  oldPwd: string,
+  newPwd: string,
+): Promise<ActionResult> {
+  const cookieFingerprint = getFingprintCookie()
+  const decodedJwt = decodeAndVerifyJwt(token) as JwtPayload
+  if (cookieFingerprint && decodedJwt) {
+    const res = verifyFingerprint(
+      cookieFingerprint,
+      decodedJwt.hashedFingerprint,
+    )
+    if (res) {
+      const userObj = await getUserObjectById(decodedJwt.userId)
+      if (
+        userObj &&
+        userObj.salt &&
+        userObj.password === hashPassword(oldPwd, userObj.salt)
+      ) {
+        const updateRes = await updatePassword(decodedJwt.userId, newPwd)
+        if (updateRes) return { result: true }
+      } else {
+        return { result: false, reason: "Old password is incorrect." }
+      }
+    }
+  }
+
+  return { result: false, reason: "Change password failed." }
+}
+
+async function resetPassword(email: string): Promise<ActionResult> {
+  const userObj = await getUserObjectByEmail(email)
+
+  if (userObj) {
+    const resetCode = generatePasswordResetCode()
+    // TODO: To create a valid link for resetting password
+    const link = `https://${resetCode}`
+    const updateRes = await updatePasswordResetCode(userObj.id, resetCode)
+    if (updateRes) {
+      const res = await sendPasswordResetLinkByMail(userObj.id, link)
+      if (res) return { result: true }
+      return { result: false, reason: "Send password reset email failed." }
+    }
+    return { result: false, reason: "Password reset failed." }
+  }
+  return { result: false, reason: "Email not found." }
+}
+
+async function changPasswordWithResetCode(
+  email: string,
+  resetCode: string,
+  newPwd: string,
+): Promise<ActionResult> {
+  const userObj = await getUserObjectByEmail(email)
+
+  if (userObj) {
+    const verifyRes = await verifyPasswordResetCode(userObj.id, resetCode)
+    if (verifyRes) {
+      const res = await updatePassword(userObj.id, newPwd)
+      if (res) return { result: true }
+      return { result: false, reason: "Update password failed." }
+    }
+  }
+  return { result: false, reason: "Email not found." }
+}
+
 export {
   loginByEmailPwd,
   refreshJwt,
   registerNotActivatedUserByEmailPwd,
   activateUserByActivationCode,
+  changePassword,
+  resetPassword,
+  changPasswordWithResetCode,
 }
