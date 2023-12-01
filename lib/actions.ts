@@ -5,9 +5,9 @@
 import "server-only"
 
 import {
-  ActionResult,
   JwtPayload,
   LoginResult,
+  ServerActionType,
   UserProfileType,
 } from "@/l/types"
 import {
@@ -38,10 +38,10 @@ import {
   verifyRefreshToken,
 } from "@/l/user"
 
-async function registerNotActivatedUserByEmailPwd(
+const registerNotActivatedUserByEmailPwd: ServerActionType = async (
   email: string,
   pwd: string,
-): Promise<ActionResult> {
+) => {
   const user = await getUserObjectByEmail(email)
   if (user) {
     return { result: false, reason: "Email already registered." }
@@ -67,10 +67,10 @@ async function registerNotActivatedUserByEmailPwd(
   return { result: false, reason: "User registration failed." }
 }
 
-async function activateUserByActivationCode(
+const activateUserByActivationCode: ServerActionType = async (
   email: string,
   code: string,
-): Promise<ActionResult> {
+) => {
   const user = await getUserObjectByEmail(email)
   if (!user) {
     return { result: false, reason: "Email has not been registered yet." }
@@ -90,10 +90,10 @@ async function activateUserByActivationCode(
   return { result: false, reason: "Email activation failed." }
 }
 
-async function loginByEmailPwd(
+const loginByEmailPwd = async (
   email: string,
   pwd: string,
-): Promise<LoginResult> {
+): Promise<LoginResult> => {
   const user = await getUserObjectByEmail(email)
 
   if (user) {
@@ -122,10 +122,10 @@ async function loginByEmailPwd(
   return { result: false, reason: "Username or password invalid." }
 }
 
-async function refreshJwt(
+const refreshJwt: ServerActionType = async (
   refreshToken: string,
   token: string,
-): Promise<LoginResult> {
+) => {
   // No need to check JWT's expiration, we just extract the data
   const decoded = decodeWithoutVerifyJwt(token)
   if (decoded) {
@@ -167,11 +167,11 @@ async function refreshJwt(
   return { result: false, reason: "Refresh token verification failed." }
 }
 
-async function changePassword(
+const changePassword: ServerActionType = async (
   token: string,
   oldPwd: string,
   newPwd: string,
-): Promise<ActionResult> {
+) => {
   const cookieFingerprint = getFingprintCookie()
   const decodedJwt = decodeAndVerifyJwt(token) as JwtPayload
   if (cookieFingerprint && decodedJwt) {
@@ -197,7 +197,7 @@ async function changePassword(
   return { result: false, reason: "Change password failed." }
 }
 
-async function resetPasswordWithEmail(email: string): Promise<ActionResult> {
+const resetPasswordWithEmail: ServerActionType = async (email: string) => {
   const userObj = await getUserObjectByEmail(email)
 
   if (userObj) {
@@ -215,11 +215,11 @@ async function resetPasswordWithEmail(email: string): Promise<ActionResult> {
   return { result: false, reason: "Email not found." }
 }
 
-async function resetPasswordWithResetCode(
+const resetPasswordWithResetCode: ServerActionType = async (
   email: string,
   resetCode: string,
   newPwd: string,
-): Promise<ActionResult> {
+) => {
   const userObj = await getUserObjectByEmail(email)
 
   if (userObj) {
@@ -233,10 +233,10 @@ async function resetPasswordWithResetCode(
   return { result: false, reason: "Email not found." }
 }
 
-async function changeProfile(
+const changeProfile: ServerActionType = async (
   token: string,
   profile: UserProfileType,
-): Promise<ActionResult> {
+) => {
   const cookieFingerprint = getFingprintCookie()
   const decodedJwt = decodeAndVerifyJwt(token) as JwtPayload
   if (cookieFingerprint && decodedJwt) {
