@@ -4,7 +4,12 @@
 
 import "server-only"
 
-import { ActionResult, JwtPayload, LoginResult } from "@/l/types"
+import {
+  ActionResult,
+  JwtPayload,
+  LoginResult,
+  UserProfileType,
+} from "@/l/types"
 import {
   clearUserActivationStatus,
   createUserByEmail,
@@ -26,6 +31,7 @@ import {
   updatePasswordResetCode,
   updateRefreshToken,
   updateUserActivationCode,
+  updateUserProfile,
   verifyFingerprint,
   verifyPassword,
   verifyPasswordResetCode,
@@ -227,6 +233,29 @@ async function resetPasswordWithResetCode(
   return { result: false, reason: "Email not found." }
 }
 
+async function changeProfile(
+  token: string,
+  profile: UserProfileType,
+): Promise<ActionResult> {
+  const cookieFingerprint = getFingprintCookie()
+  const decodedJwt = decodeAndVerifyJwt(token) as JwtPayload
+  if (cookieFingerprint && decodedJwt) {
+    const res = verifyFingerprint(
+      cookieFingerprint,
+      decodedJwt.hashedFingerprint,
+    )
+    if (res) {
+      const userObj = await getUserObjectById(decodedJwt.userId)
+      if (userObj) {
+        const updateRes = await updateUserProfile(decodedJwt.userId, profile)
+        if (updateRes) return { result: true }
+      }
+    }
+  }
+
+  return { result: false, reason: "Change profile failed." }
+}
+
 export {
   loginByEmailPwd,
   refreshJwt,
@@ -235,4 +264,5 @@ export {
   changePassword,
   resetPasswordWithEmail,
   resetPasswordWithResetCode,
+  changeProfile,
 }

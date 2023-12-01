@@ -1,6 +1,7 @@
 import {
   activateUserByActivationCode,
   changePassword,
+  changeProfile,
   loginByEmailPwd,
   refreshJwt,
   registerNotActivatedUserByEmailPwd,
@@ -8,6 +9,7 @@ import {
   resetPasswordWithResetCode,
 } from "@/l/actions"
 import db from "@/l/dbconn"
+import { Gendertype } from "@/l/dbgen"
 import { JwtPayload } from "@/l/types"
 import {
   deleteUserByEmail,
@@ -173,6 +175,34 @@ describe("User change password action", () => {
         const verifyRes = verifyPassword(pwd, user.salt, user.password)
         expect(verifyRes).toBeTruthy()
       }
+    }
+  })
+})
+
+describe("User change profile action", () => {
+  test("Test changeProfile()", async () => {
+    expect(currentToken).toBeDefined()
+    const nickname = "Billy Jean"
+    const gender: Gendertype = "man"
+
+    if (currentToken) {
+      const oldUser = await getUserObjectByEmail(email)
+      expect(oldUser).toBeDefined()
+
+      const updateRes = await changeProfile(currentToken, {
+        nickname,
+        gender,
+      })
+      expect(updateRes.result).toBeTruthy()
+
+      const user = await getUserObjectByEmail(email)
+      expect(user).toBeDefined()
+      expect(user?.nickname).toEqual(nickname)
+      expect(user?.gender).toEqual(gender)
+      if (user && oldUser && user.updatedAt && oldUser.updatedAt)
+        expect(
+          user.updatedAt.getTime() > oldUser.updatedAt.getTime(),
+        ).toBeTruthy()
     }
   })
 })

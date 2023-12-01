@@ -3,7 +3,13 @@ import "server-only"
 import crypto from "crypto"
 import db from "@/l/dbconn"
 import envVariables from "@/l/env"
-import { JwtPayload, User } from "@/l/types"
+import {
+  JwtPayload,
+  UpdateUserType,
+  UserExternalType,
+  UserProfileType,
+  UserType,
+} from "@/l/types"
 import * as Jwt from "jsonwebtoken"
 import { cookies } from "next/headers"
 import * as nodemailer from "nodemailer"
@@ -87,7 +93,7 @@ export const deleteUserByEmail = async (email: string): Promise<boolean> => {
 
 export const findUserByEmail = async (
   email: string,
-): Promise<User | undefined> => {
+): Promise<UserExternalType | undefined> => {
   const res = await db
     .selectFrom("user")
     .select(["id", "email"])
@@ -95,13 +101,15 @@ export const findUserByEmail = async (
     .execute()
 
   if (res.length > 0) {
-    return res[0] as User
+    return res[0] as UserExternalType
   }
 
   return undefined
 }
 
-export const findUserById = async (id: string): Promise<User | undefined> => {
+export const findUserById = async (
+  id: string,
+): Promise<UserExternalType | undefined> => {
   const res = await db
     .selectFrom("user")
     .select(["id", "email"])
@@ -109,7 +117,7 @@ export const findUserById = async (id: string): Promise<User | undefined> => {
     .execute()
 
   if (res.length > 0) {
-    return res[0] as User
+    return res[0] as UserExternalType
   }
 
   return undefined
@@ -117,7 +125,7 @@ export const findUserById = async (id: string): Promise<User | undefined> => {
 
 export const getUserObjectByEmail = async (
   email: string,
-): Promise<User | undefined> => {
+): Promise<UserType | undefined> => {
   const res = await db
     .selectFrom("user")
     .selectAll()
@@ -125,7 +133,7 @@ export const getUserObjectByEmail = async (
     .execute()
 
   if (res.length > 0) {
-    return res[0] as User
+    return res[0]
   }
 
   return undefined
@@ -133,7 +141,7 @@ export const getUserObjectByEmail = async (
 
 export const getUserObjectById = async (
   id: string,
-): Promise<User | undefined> => {
+): Promise<UserType | undefined> => {
   const res = await db
     .selectFrom("user")
     .selectAll()
@@ -141,7 +149,7 @@ export const getUserObjectById = async (
     .execute()
 
   if (res.length > 0) {
-    return res[0] as User
+    return res[0]
   }
 
   return undefined
@@ -149,7 +157,7 @@ export const getUserObjectById = async (
 
 export const getUserObjectByRefreshToken = async (
   refreshToken: string,
-): Promise<User | undefined> => {
+): Promise<UserType | undefined> => {
   const res = await db
     .selectFrom("user")
     .selectAll()
@@ -157,7 +165,7 @@ export const getUserObjectByRefreshToken = async (
     .execute()
 
   if (res.length > 0) {
-    return res[0] as User
+    return res[0]
   }
 
   return undefined
@@ -215,6 +223,7 @@ export const updateRefreshToken = async (
     .set({
       refreshToken,
       refreshTokenExpiresAt: expiresAt,
+      updatedAt: new Date(),
     })
     .executeTakeFirst()
 
@@ -236,6 +245,7 @@ export const updateUserActivationCode = async (
       emailActivateCodeExpiresAt: new Date(
         Date.now() + envVariables.EMAIL_ACTIVATE_EXPIRES_SECS,
       ),
+      updatedAt: new Date(),
     })
     .executeTakeFirst()
 
@@ -252,6 +262,7 @@ export const clearUserActivationStatus = async (userId: string) => {
       emailActivateCode: undefined,
       emailActivated: true,
       emailActivateCodeExpiresAt: undefined,
+      updatedAt: new Date(),
     })
     .executeTakeFirst()
 
@@ -288,6 +299,7 @@ export const updatePassword = async (
     .set({
       password: hashedPwd,
       salt,
+      updatedAt: new Date(),
     })
     .executeTakeFirst()
 
@@ -308,6 +320,7 @@ export const updatePasswordResetCode = async (
       passwordResetCodeExpiresAt: new Date(
         Date.now() + envVariables.PASSWORD_RESET_CODE_EXPIRES_SECS,
       ),
+      updatedAt: new Date(),
     })
     .executeTakeFirst()
 
@@ -359,10 +372,46 @@ export const clearPasswordResetCode = async (userId: string) => {
     .set({
       passwordResetCode: "",
       passwordResetCodeExpiresAt: undefined,
+      // TODO: Find a way to update the updatedAt more elegantly
+      updatedAt: new Date(),
     })
     .executeTakeFirst()
 
   if (res.numUpdatedRows > 0) return true
+
+  return false
+}
+
+export const updateUserProfile = async (
+  userId: string,
+  profile: UserProfileType,
+) => {
+  const userObj = await getUserObjectById(userId)
+
+  if (userObj) {
+    const dbQuery = db.updateTable("user").where("id", "=", userId)
+    const updateObj: UpdateUserType = {
+      updatedAt: new Date(),
+    }
+
+    if (profile.gender && profile.gender !== userObj.gender)
+      updateObj.gender = profile.gender
+
+    if (profile.nickname && profile.nickname !== userObj.nickname)
+      updateObj.nickname = profile.nickname
+
+    if (profile.firstName && profile.firstName !== userObj.firstName)
+      updateObj.firstName = profile.firstName
+
+    if (profile.lastName && profile.lastName !== userObj.lastName)
+      updateObj.lastName = profile.lastName
+
+    if (profile.avatarUrl && profile.avatarUrl !== userObj.avatarUrl)
+      updateObj.avatarUrl = profile.avatarUrl
+
+    const res = await dbQuery.set(updateObj).executeTakeFirst()
+    if (res.numUpdatedRows > 0) return true
+  }
 
   return false
 }
