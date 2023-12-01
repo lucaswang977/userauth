@@ -1,11 +1,11 @@
 import {
   activateUserByActivationCode,
   changePassword,
-  changPasswordWithResetCode,
   loginByEmailPwd,
   refreshJwt,
   registerNotActivatedUserByEmailPwd,
-  resetPassword,
+  resetPasswordWithEmail,
+  resetPasswordWithResetCode,
 } from "@/l/actions"
 import db from "@/l/dbconn"
 import { JwtPayload } from "@/l/types"
@@ -37,7 +37,6 @@ jest.mock("next/headers", () => {
 let activationCode: string | undefined
 let passwordResetCode: string | undefined
 
-// TODO: Match pattern should be more flexible
 jest.mock("nodemailer", () => {
   const originalModule = jest.requireActual("nodemailer")
 
@@ -45,6 +44,7 @@ jest.mock("nodemailer", () => {
     ...originalModule,
     createTransport: () => ({
       sendMail: (obj: { to: string; text: string }) => {
+        // TODO: Match pattern should be more flexible
         const matchActivationCode = obj.text.match(
           /(?:This is your one time activation code: )(\w+)/,
         )
@@ -154,13 +154,13 @@ describe("User change password action", () => {
   })
 
   test("Test resetPassword()", async () => {
-    const resetRes = await resetPassword(email)
+    const resetRes = await resetPasswordWithEmail(email)
     expect(resetRes.result).toBeTruthy()
 
     expect(passwordResetCode).toBeTruthy()
 
     if (passwordResetCode) {
-      const updateRes = await changPasswordWithResetCode(
+      const updateRes = await resetPasswordWithResetCode(
         email,
         passwordResetCode,
         pwd,

@@ -1,21 +1,17 @@
+import { DB } from "@/l/dbgen"
 import envVariables from "@/l/env"
-import { Database } from "@/l/types"
 // import { slogger } from "@/l/utility"
 import { Kysely, PostgresDialect } from "kysely"
 import { Pool } from "pg"
 
 const dialect = new PostgresDialect({
   pool: new Pool({
-    database: envVariables.PG_DB,
-    host: envVariables.PG_HOST,
-    user: envVariables.PG_USER,
-    port: envVariables.PG_PORT,
-    password: envVariables.PG_PASSWORD,
+    connectionString: envVariables.DATABASE_URL,
     max: 10,
   }),
 })
 
-const db = new Kysely<Database>({
+const db = new Kysely<DB>({
   dialect,
   // log(event) {
   //   if (event.level === "query") {

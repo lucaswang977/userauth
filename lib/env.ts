@@ -1,11 +1,7 @@
 import { z } from "zod"
 
 const envSchema = z.object({
-  PG_HOST: z.string().trim().min(1),
-  PG_DB: z.string().trim().min(1),
-  PG_PORT: z.preprocess(Number, z.number().default(5432)),
-  PG_USER: z.string().trim().min(1),
-  PG_PASSWORD: z.string().trim().min(1),
+  DATABASE_URL: z.string().trim().min(1),
   JWT_SECRET: z.string().trim().min(1),
   JWT_EXPIRES_SECS: z.preprocess(Number, z.number().default(300)),
   JWT_REFRESH_EXPIRES_SECS: z.preprocess(Number, z.number().default(3600)),
@@ -19,11 +15,7 @@ const envSchema = z.object({
 })
 
 const envSchemaParser = envSchema.safeParse({
-  PG_HOST: process.env.PG_HOST,
-  PG_DB: process.env.PG_DB,
-  PG_PORT: process.env.PG_PORT,
-  PG_USER: process.env.PG_USER,
-  PG_PASSWORD: process.env.PG_PASSWORD,
+  DATABASE_URL: process.env.DATABASE_URL,
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_EXPIRES_SECS: process.env.JWT_EXPIRES_SECS,
   JWT_REFRESH_EXPIRES_SECS: process.env.JWT_REFRESH_EXPIRES_SECS,

@@ -191,7 +191,7 @@ async function changePassword(
   return { result: false, reason: "Change password failed." }
 }
 
-async function resetPassword(email: string): Promise<ActionResult> {
+async function resetPasswordWithEmail(email: string): Promise<ActionResult> {
   const userObj = await getUserObjectByEmail(email)
 
   if (userObj) {
@@ -209,7 +209,7 @@ async function resetPassword(email: string): Promise<ActionResult> {
   return { result: false, reason: "Email not found." }
 }
 
-async function changPasswordWithResetCode(
+async function resetPasswordWithResetCode(
   email: string,
   resetCode: string,
   newPwd: string,
@@ -233,6 +233,6 @@ export {
   registerNotActivatedUserByEmailPwd,
   activateUserByActivationCode,
   changePassword,
-  resetPassword,
-  changPasswordWithResetCode,
+  resetPasswordWithEmail,
+  resetPasswordWithResetCode,
 }

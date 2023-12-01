@@ -1,6 +1,5 @@
 import { promises as fs } from "fs"
 import * as path from "path"
-import { Database } from "@/l/types"
 import { slogger } from "@/l/utility"
 import * as dotenv from "dotenv"
 import {
@@ -15,16 +14,12 @@ dotenv.config()
 
 const dialect = new PostgresDialect({
   pool: new Pool({
-    database: process.env.PG_DB,
-    host: process.env.PG_HOST,
-    user: process.env.PG_USER,
-    port: process.env.PG_PORT ? parseInt(process.env.PG_PORT, 10) : 5432,
-    password: process.env.PG_PASSWORD,
+    connectionString: process.env.DATABASE_URL,
     max: 10,
   }),
 })
 
-const db = new Kysely<Database>({
+const db = new Kysely<{}>({
   dialect,
 })
 
