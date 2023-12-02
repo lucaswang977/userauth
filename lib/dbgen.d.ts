@@ -23,9 +23,9 @@ export interface User {
   password: string | null
   passwordResetCode: string | null
   passwordResetCodeExpiresAt: Timestamp | null
+  passwordSalt: string | null
   refreshToken: string | null
   refreshTokenExpiresAt: Timestamp | null
-  salt: string | null
   updatedAt: Generated<Timestamp | null>
 }
 

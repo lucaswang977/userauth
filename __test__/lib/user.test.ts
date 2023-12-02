@@ -1,5 +1,5 @@
 import db from "@/l/dbconn"
-import { JwtPayload, User } from "@/l/types"
+import { JwtPayload, UserType } from "@/l/types"
 import {
   clearPasswordResetCode,
   createUserByEmail,
@@ -28,7 +28,7 @@ jest.mock("uuid", () => ({ v4: () => "0a613541-ba97-47f5-84e3-fdc35a09717c" }))
 
 const email = "test@example.com"
 const pwd = "temporary_password"
-let user: User | undefined
+let user: UserType | undefined
 
 beforeAll(async () => {
   await deleteUserByEmail(email)
@@ -100,13 +100,17 @@ describe("Create user, find user, then delete", () => {
       expect(aUser).toBeDefined()
       expect(aUser).toEqual(user)
 
-      const { password, salt } = user
+      const { password, passwordSalt } = user
       expect(password).toBeDefined()
-      expect(salt).toBeDefined()
-      if (password && salt) {
-        const verifiedPwd1 = verifyPassword(pwd, salt, password)
+      expect(passwordSalt).toBeDefined()
+      if (password && passwordSalt) {
+        const verifiedPwd1 = verifyPassword(pwd, passwordSalt, password)
         expect(verifiedPwd1).toBeTruthy()
-        const verifiedPwd2 = verifyPassword("anotherpwd", salt, password)
+        const verifiedPwd2 = verifyPassword(
+          "anotherpwd",
+          passwordSalt,
+          password,
+        )
         expect(verifiedPwd2).toBeFalsy()
       }
     }
@@ -163,7 +167,7 @@ describe("Generate refreshToken then update", () => {
     if (user) {
       const oldHashedPwd = user.password
       expect(oldHashedPwd).toBeDefined()
-      const oldSalt = user.salt
+      const oldSalt = user.passwordSalt
       expect(oldSalt).toBeDefined()
 
       const updateRes = await updatePassword(user.id, newPwdStr)
@@ -175,7 +179,7 @@ describe("Generate refreshToken then update", () => {
         const newHashedPwd = newUser.password
         expect(newHashedPwd).toBeDefined()
         expect(oldHashedPwd !== newHashedPwd).toBeTruthy()
-        const newSalt = newUser.salt
+        const newSalt = newUser.passwordSalt
         expect(newSalt).toBeDefined()
         expect(oldSalt !== newSalt).toBeTruthy()
         if (newHashedPwd && newSalt) {

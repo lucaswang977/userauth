@@ -61,14 +61,14 @@ export const createUserByEmail = async (
   email: string,
   pwd: string,
 ): Promise<boolean> => {
-  const salt = generateSalt()
-  const password = hashPassword(pwd, salt)
+  const passwordSalt = generateSalt()
+  const password = hashPassword(pwd, passwordSalt)
   const res = await db
     .insertInto("user")
     .values({
       email,
       password,
-      salt,
+      passwordSalt,
     })
     .executeTakeFirst()
 
@@ -232,6 +232,22 @@ export const updateRefreshToken = async (
   return false
 }
 
+export const clearRefreshToken = async (userId: string): Promise<boolean> => {
+  const res = await db
+    .updateTable("user")
+    .where("id", "=", userId)
+    .set({
+      refreshToken: null,
+      refreshTokenExpiresAt: null,
+      updatedAt: new Date(),
+    })
+    .executeTakeFirst()
+
+  if (res.numUpdatedRows > 0) return true
+
+  return false
+}
+
 export const updateUserActivationCode = async (
   userId: string,
   emailActivateCode: string,
@@ -290,15 +306,15 @@ export const updatePassword = async (
   userId: string,
   password: string,
 ): Promise<boolean> => {
-  const salt = generateSalt()
-  const hashedPwd = hashPassword(password, salt)
+  const passwordSalt = generateSalt()
+  const hashedPwd = hashPassword(password, passwordSalt)
 
   const res = await db
     .updateTable("user")
     .where("id", "=", userId)
     .set({
       password: hashedPwd,
-      salt,
+      passwordSalt,
       updatedAt: new Date(),
     })
     .executeTakeFirst()

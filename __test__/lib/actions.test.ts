@@ -3,6 +3,7 @@ import {
   changePassword,
   changeProfile,
   loginByEmailPwd,
+  logoutAll,
   refreshJwt,
   registerNotActivatedUserByEmailPwd,
   resetPasswordWithEmail,
@@ -171,8 +172,8 @@ describe("User change password action", () => {
 
       const user = await getUserObjectByEmail(email)
       expect(user).toBeDefined()
-      if (user && user.salt && user.password) {
-        const verifyRes = verifyPassword(pwd, user.salt, user.password)
+      if (user && user.passwordSalt && user.password) {
+        const verifyRes = verifyPassword(pwd, user.passwordSalt, user.password)
         expect(verifyRes).toBeTruthy()
       }
     }
@@ -203,6 +204,30 @@ describe("User change profile action", () => {
         expect(
           user.updatedAt.getTime() > oldUser.updatedAt.getTime(),
         ).toBeTruthy()
+    }
+  })
+})
+
+describe("Test logout all action", () => {
+  test("Test logoutAll()", async () => {
+    expect(currentToken).toBeDefined()
+
+    if (currentToken) {
+      const user = await getUserObjectByEmail(email)
+      expect(user).toBeDefined()
+      expect(user?.refreshToken).toBeDefined()
+
+      if (user) {
+        const res = await logoutAll(currentToken)
+        expect(res).toBeTruthy()
+
+        if (user.refreshToken) {
+          const refreshRes = await refreshJwt(user.refreshToken, currentToken)
+          expect(refreshRes.result).toBeFalsy()
+          const newUser = await getUserObjectByEmail(email)
+          expect(newUser?.refreshToken).toBeFalsy()
+        }
+      }
     }
   })
 })

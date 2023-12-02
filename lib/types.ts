@@ -7,7 +7,6 @@ export type UpdateUserType = Updateable<User>
 
 export type ServerActionType = (...args: any[]) => Promise<ActionResult>
 
-// TODO: Try to change to interface
 export type ActionResult =
   | {
       result: true

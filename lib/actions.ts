@@ -11,6 +11,7 @@ import {
   UserProfileType,
 } from "@/l/types"
 import {
+  clearRefreshToken,
   clearUserActivationStatus,
   createUserByEmail,
   decodeAndVerifyJwt,
@@ -97,9 +98,13 @@ const loginByEmailPwd = async (
   const user = await getUserObjectByEmail(email)
 
   if (user) {
-    const { id, salt, password, emailActivated } = user
+    const { id, passwordSalt, password, emailActivated } = user
 
-    if (password && salt && verifyPassword(pwd, salt, password)) {
+    if (
+      password &&
+      passwordSalt &&
+      verifyPassword(pwd, passwordSalt, password)
+    ) {
       if (!emailActivated) {
         return { result: false, reason: "User not activated yet." }
       }
@@ -122,10 +127,10 @@ const loginByEmailPwd = async (
   return { result: false, reason: "Username or password invalid." }
 }
 
-const refreshJwt: ServerActionType = async (
+const refreshJwt = async (
   refreshToken: string,
   token: string,
-) => {
+): Promise<LoginResult> => {
   // No need to check JWT's expiration, we just extract the data
   const decoded = decodeWithoutVerifyJwt(token)
   if (decoded) {
@@ -183,8 +188,8 @@ const changePassword: ServerActionType = async (
       const userObj = await getUserObjectById(decodedJwt.userId)
       if (
         userObj &&
-        userObj.salt &&
-        userObj.password === hashPassword(oldPwd, userObj.salt)
+        userObj.passwordSalt &&
+        userObj.password === hashPassword(oldPwd, userObj.passwordSalt)
       ) {
         const updateRes = await updatePassword(decodedJwt.userId, newPwd)
         if (updateRes) return { result: true }
@@ -256,6 +261,28 @@ const changeProfile: ServerActionType = async (
   return { result: false, reason: "Change profile failed." }
 }
 
+// Revoke the refresh token, so all the loggin in devices will be forced
+// to re-login
+const logoutAll: ServerActionType = async (token: string) => {
+  const cookieFingerprint = getFingprintCookie()
+  const decodedJwt = decodeAndVerifyJwt(token) as JwtPayload
+  if (cookieFingerprint && decodedJwt) {
+    const res = verifyFingerprint(
+      cookieFingerprint,
+      decodedJwt.hashedFingerprint,
+    )
+    if (res) {
+      const userObj = await getUserObjectById(decodedJwt.userId)
+      if (userObj) {
+        const updateRes = await clearRefreshToken(decodedJwt.userId)
+        if (updateRes) return { result: true }
+      }
+    }
+  }
+
+  return { result: false, reason: "Logout failed." }
+}
+
 export {
   loginByEmailPwd,
   refreshJwt,
@@ -265,4 +292,5 @@ export {
   resetPasswordWithEmail,
   resetPasswordWithResetCode,
   changeProfile,
+  logoutAll,
 }
