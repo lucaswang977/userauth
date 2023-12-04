@@ -1,15 +1,17 @@
-import { decodeAndVerifyJwt } from "@/l/user"
-import { slogger } from "@/l/utility"
+// https://github.com/vercel/examples/tree/main/solutions/aws-s3-image-upload
 
-/* eslint-disable import/prefer-default-export */
+// TODO: We can still use server action to calling S3's createPresigned api
+
+import { decodeAndVerifyJwt } from "@/l/user"
+
 export async function POST(request: Request) {
   const json = await request.json()
-  slogger.info(json)
+  const { token } = json as { token: string }
 
   const decoded = decodeAndVerifyJwt(token)
   if (decoded) {
     return Response.json({ result: true, userId: decoded.userId })
   }
 
-  return Response.json({ result: false })
+  return Response.json({ result: false }, { status: 400 })
 }

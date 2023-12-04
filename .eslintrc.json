@@ -14,6 +14,8 @@
     "react/require-default-props": "off",
     "react/jsx-props-no-spreading": "off",
     "react/prop-types": "off",
+    "import/no-extraneous-dependencies": "off",
+    "import/prefer-default-export": "off",
     "prettier/prettier": ["warn"]
   },
   "parser": "@typescript-eslint/parser",
