@@ -1,6 +1,7 @@
 import clsx, { ClassValue } from "clsx"
 import pino from "pino"
 import { twMerge } from "tailwind-merge"
+import { v4 as uuidv4 } from "uuid"
 
 export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs))
 
@@ -20,3 +21,10 @@ export const clogger = pino({
   name: "scaffold",
   level: "trace",
 })
+
+export const getExtension = (filename: string) => {
+  const i = filename.lastIndexOf(".")
+  return i < 0 ? "" : filename.substring(i + 1)
+}
+
+export const generateUUID = () => uuidv4()

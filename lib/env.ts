@@ -12,6 +12,7 @@ const envSchema = z.object({
     Number,
     z.number().default(300),
   ),
+  UPLOAD_RELATIVE_PATH: z.string().trim().default("upload"),
 })
 
 const envSchemaParser = envSchema.safeParse({
@@ -24,6 +25,7 @@ const envSchemaParser = envSchema.safeParse({
   EMAIL_FROM: process.env.EMAIL_FROM,
   PASSWORD_RESET_CODE_EXPIRES_SECS:
     process.env.PASSWORD_RESET_CODE_EXPIRES_SECS,
+  UPLOAD_RELATIVE_PATH: process.env.UPLOAD_RELATIVE_PATH,
 })
 
 if (!envSchemaParser.success) {

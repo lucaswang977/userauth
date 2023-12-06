@@ -1,3 +1,7 @@
+/**
+ * @jest-environment node
+ */
+
 import {
   activateUserByActivationCode,
   changePassword,
@@ -8,6 +12,7 @@ import {
   registerNotActivatedUserByEmailPwd,
   resetPasswordWithEmail,
   resetPasswordWithResetCode,
+  uploadAvatarImage,
 } from "@/l/actions"
 import db from "@/l/dbconn"
 import { Gendertype } from "@/l/dbgen"
@@ -18,6 +23,7 @@ import {
   verifyPassword,
 } from "@/l/user"
 import { delay } from "@/l/utility"
+import { readFileSync } from "fs"
 import * as Jwt from "jsonwebtoken"
 
 jest.mock("uuid", () => ({ v4: () => "0a613541-ba97-47f5-84e3-fdc35a09717c" }))
@@ -176,6 +182,21 @@ describe("User change password action", () => {
         const verifyRes = verifyPassword(pwd, user.passwordSalt, user.password)
         expect(verifyRes).toBeTruthy()
       }
+    }
+  })
+})
+
+describe("User upload avatar image action", () => {
+  test("Test uploadAvatar()", async () => {
+    expect(currentToken).toBeDefined()
+    const filename = "avataaars.png"
+    const formData = new FormData()
+    const buffer = readFileSync(`./public/${filename}`)
+    formData.append("file", new Blob([buffer]), filename)
+
+    if (currentToken) {
+      const uploadRes = await uploadAvatarImage(currentToken, formData)
+      expect(uploadRes.result).toBeTruthy()
     }
   })
 })

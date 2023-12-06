@@ -13,7 +13,8 @@ import {
 import * as Jwt from "jsonwebtoken"
 import { cookies } from "next/headers"
 import * as nodemailer from "nodemailer"
-import { v4 as uuidv4 } from "uuid"
+
+import { generateUUID } from "./utility"
 
 export const generateSalt = () => crypto.randomBytes(16).toString("hex")
 
@@ -207,7 +208,7 @@ export const generateJwt = (payload: JwtPayload, expiresInSec?: number) =>
   })
 
 export const generateRefreshToken = () => {
-  const refreshToken = uuidv4()
+  const refreshToken = generateUUID()
   const expiresAt = new Date(Date.now() + envVariables.JWT_REFRESH_EXPIRES_SECS)
   return { refreshToken, expiresAt }
 }

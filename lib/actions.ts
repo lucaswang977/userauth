@@ -4,7 +4,10 @@
 
 import "server-only"
 
+import { mkdirSync } from "fs"
+import { writeFile } from "fs/promises"
 import {
+  ActionResult,
   JwtPayload,
   LoginResult,
   ServerActionType,
@@ -39,10 +42,12 @@ import {
   verifyRefreshToken,
 } from "@/l/user"
 
-const registerNotActivatedUserByEmailPwd: ServerActionType = async (
-  email: string,
-  pwd: string,
-) => {
+import envVariables from "./env"
+import { generateUUID, getExtension } from "./utility"
+
+const registerNotActivatedUserByEmailPwd: ServerActionType<
+  ActionResult
+> = async (email: string, pwd: string) => {
   const user = await getUserObjectByEmail(email)
   if (user) {
     return { result: false, reason: "Email already registered." }
@@ -68,7 +73,7 @@ const registerNotActivatedUserByEmailPwd: ServerActionType = async (
   return { result: false, reason: "User registration failed." }
 }
 
-const activateUserByActivationCode: ServerActionType = async (
+const activateUserByActivationCode: ServerActionType<ActionResult> = async (
   email: string,
   code: string,
 ) => {
@@ -91,10 +96,10 @@ const activateUserByActivationCode: ServerActionType = async (
   return { result: false, reason: "Email activation failed." }
 }
 
-const loginByEmailPwd = async (
+const loginByEmailPwd: ServerActionType<LoginResult> = async (
   email: string,
   pwd: string,
-): Promise<LoginResult> => {
+) => {
   const user = await getUserObjectByEmail(email)
 
   if (user) {
@@ -172,7 +177,7 @@ const refreshJwt = async (
   return { result: false, reason: "Refresh token verification failed." }
 }
 
-const changePassword: ServerActionType = async (
+const changePassword: ServerActionType<ActionResult> = async (
   token: string,
   oldPwd: string,
   newPwd: string,
@@ -202,7 +207,9 @@ const changePassword: ServerActionType = async (
   return { result: false, reason: "Change password failed." }
 }
 
-const resetPasswordWithEmail: ServerActionType = async (email: string) => {
+const resetPasswordWithEmail: ServerActionType<ActionResult> = async (
+  email: string,
+) => {
   const userObj = await getUserObjectByEmail(email)
 
   if (userObj) {
@@ -220,7 +227,7 @@ const resetPasswordWithEmail: ServerActionType = async (email: string) => {
   return { result: false, reason: "Email not found." }
 }
 
-const resetPasswordWithResetCode: ServerActionType = async (
+const resetPasswordWithResetCode: ServerActionType<ActionResult> = async (
   email: string,
   resetCode: string,
   newPwd: string,
@@ -238,7 +245,7 @@ const resetPasswordWithResetCode: ServerActionType = async (
   return { result: false, reason: "Email not found." }
 }
 
-const changeProfile: ServerActionType = async (
+const changeProfile: ServerActionType<ActionResult> = async (
   token: string,
   profile: UserProfileType,
 ) => {
@@ -263,7 +270,7 @@ const changeProfile: ServerActionType = async (
 
 // Revoke the refresh token, so all the loggin in devices will be forced
 // to re-login
-const logoutAll: ServerActionType = async (token: string) => {
+const logoutAll: ServerActionType<ActionResult> = async (token: string) => {
   const cookieFingerprint = getFingprintCookie()
   const decodedJwt = decodeAndVerifyJwt(token) as JwtPayload
   if (cookieFingerprint && decodedJwt) {
@@ -283,6 +290,41 @@ const logoutAll: ServerActionType = async (token: string) => {
   return { result: false, reason: "Logout failed." }
 }
 
+const uploadAvatarImage: ServerActionType<
+  ActionResult & { url?: string }
+> = async (token: string, fileInFormData: FormData) => {
+  const cookieFingerprint = getFingprintCookie()
+  const decodedJwt = decodeAndVerifyJwt(token) as JwtPayload
+  if (cookieFingerprint && decodedJwt) {
+    const res = verifyFingerprint(
+      cookieFingerprint,
+      decodedJwt.hashedFingerprint,
+    )
+    if (res) {
+      const userObj = await getUserObjectById(decodedJwt.userId)
+      if (userObj) {
+        const file = fileInFormData.get("file") as File
+        const filename = `${generateUUID()}.${getExtension(file.name)}`
+        const buffer = await file.arrayBuffer()
+        const uploadPath = `public/${envVariables.UPLOAD_RELATIVE_PATH}`
+        try {
+          mkdirSync(uploadPath)
+        } catch (err) {
+          if ((err as { code: string }).code !== "EEXIST")
+            return { result: false, reason: "Internal error." }
+        }
+        await writeFile(`${uploadPath}/${filename}`, Buffer.from(buffer))
+        return {
+          result: true,
+          url: `/${envVariables.UPLOAD_RELATIVE_PATH}/${filename}`,
+        }
+      }
+    }
+  }
+
+  return { result: false, reason: "Upload failed." }
+}
+
 export {
   loginByEmailPwd,
   refreshJwt,
@@ -292,5 +334,6 @@ export {
   resetPasswordWithEmail,
   resetPasswordWithResetCode,
   changeProfile,
+  uploadAvatarImage,
   logoutAll,
 }

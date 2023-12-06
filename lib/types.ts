@@ -5,7 +5,7 @@ export type UserType = Selectable<User>
 export type InsertUserType = Insertable<User>
 export type UpdateUserType = Updateable<User>
 
-export type ServerActionType = (...args: any[]) => Promise<ActionResult>
+export type ServerActionType<T> = (...args: any[]) => Promise<T>
 
 export type ActionResult =
   | {

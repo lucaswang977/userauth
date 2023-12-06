@@ -42,3 +42,5 @@ bun.lockb
 
 cypress/videos
 cypress/screenshots
+
+public/upload
