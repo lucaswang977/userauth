@@ -10,8 +10,9 @@ import {
   ActionResult,
   JwtPayload,
   LoginResult,
-  ServerActionType,
+  UnprotectedServerActionType,
   UserProfileType,
+  type ProtectedServerActionType,
 } from "@/l/types"
 import {
   clearRefreshToken,
@@ -45,9 +46,10 @@ import {
 import envVariables from "./env"
 import { generateUUID, getExtension } from "./utility"
 
-const registerNotActivatedUserByEmailPwd: ServerActionType<
+const registerNotActivatedUserByEmailPwd: UnprotectedServerActionType<
+  { email: string; pwd: string },
   ActionResult
-> = async (email: string, pwd: string) => {
+> = async ({ email, pwd }) => {
   const user = await getUserObjectByEmail(email)
   if (user) {
     return { result: false, reason: "Email already registered." }
@@ -73,10 +75,10 @@ const registerNotActivatedUserByEmailPwd: ServerActionType<
   return { result: false, reason: "User registration failed." }
 }
 
-const activateUserByActivationCode: ServerActionType<ActionResult> = async (
-  email: string,
-  code: string,
-) => {
+const activateUserByActivationCode: UnprotectedServerActionType<
+  { email: string; code: string },
+  ActionResult
+> = async ({ email, code }) => {
   const user = await getUserObjectByEmail(email)
   if (!user) {
     return { result: false, reason: "Email has not been registered yet." }
@@ -96,10 +98,10 @@ const activateUserByActivationCode: ServerActionType<ActionResult> = async (
   return { result: false, reason: "Email activation failed." }
 }
 
-const loginByEmailPwd: ServerActionType<LoginResult> = async (
-  email: string,
-  pwd: string,
-) => {
+const loginByEmailPwd: UnprotectedServerActionType<
+  { email: string; pwd: string },
+  LoginResult
+> = async ({ email, pwd }) => {
   const user = await getUserObjectByEmail(email)
 
   if (user) {
@@ -177,11 +179,10 @@ const refreshJwt = async (
   return { result: false, reason: "Refresh token verification failed." }
 }
 
-const changePassword: ServerActionType<ActionResult> = async (
-  token: string,
-  oldPwd: string,
-  newPwd: string,
-) => {
+const changePassword: ProtectedServerActionType<
+  { oldPwd: string; newPwd: string },
+  ActionResult
+> = async ({ token, oldPwd, newPwd }) => {
   const cookieFingerprint = getFingprintCookie()
   const decodedJwt = decodeAndVerifyJwt(token) as JwtPayload
   if (cookieFingerprint && decodedJwt) {
@@ -207,9 +208,10 @@ const changePassword: ServerActionType<ActionResult> = async (
   return { result: false, reason: "Change password failed." }
 }
 
-const resetPasswordWithEmail: ServerActionType<ActionResult> = async (
-  email: string,
-) => {
+const resetPasswordWithEmail: UnprotectedServerActionType<
+  { email: string },
+  ActionResult
+> = async ({ email }) => {
   const userObj = await getUserObjectByEmail(email)
 
   if (userObj) {
@@ -227,11 +229,10 @@ const resetPasswordWithEmail: ServerActionType<ActionResult> = async (
   return { result: false, reason: "Email not found." }
 }
 
-const resetPasswordWithResetCode: ServerActionType<ActionResult> = async (
-  email: string,
-  resetCode: string,
-  newPwd: string,
-) => {
+const resetPasswordWithResetCode: UnprotectedServerActionType<
+  { email: string; resetCode: string; newPwd: string },
+  ActionResult
+> = async ({ email, resetCode, newPwd }) => {
   const userObj = await getUserObjectByEmail(email)
 
   if (userObj) {
@@ -245,10 +246,10 @@ const resetPasswordWithResetCode: ServerActionType<ActionResult> = async (
   return { result: false, reason: "Email not found." }
 }
 
-const changeProfile: ServerActionType<ActionResult> = async (
-  token: string,
-  profile: UserProfileType,
-) => {
+const changeProfile: ProtectedServerActionType<
+  { profile: UserProfileType },
+  ActionResult
+> = async ({ token, profile }) => {
   const cookieFingerprint = getFingprintCookie()
   const decodedJwt = decodeAndVerifyJwt(token) as JwtPayload
   if (cookieFingerprint && decodedJwt) {
@@ -270,7 +271,9 @@ const changeProfile: ServerActionType<ActionResult> = async (
 
 // Revoke the refresh token, so all the loggin in devices will be forced
 // to re-login
-const logoutAll: ServerActionType<ActionResult> = async (token: string) => {
+const logoutAll: ProtectedServerActionType<{}, ActionResult> = async ({
+  token,
+}) => {
   const cookieFingerprint = getFingprintCookie()
   const decodedJwt = decodeAndVerifyJwt(token) as JwtPayload
   if (cookieFingerprint && decodedJwt) {
@@ -290,9 +293,11 @@ const logoutAll: ServerActionType<ActionResult> = async (token: string) => {
   return { result: false, reason: "Logout failed." }
 }
 
-const uploadAvatarImage: ServerActionType<
+// TODO: Not safe to save uploaded files in /public folder
+const uploadAvatarImage: ProtectedServerActionType<
+  { fileInFormData: FormData },
   ActionResult & { url?: string }
-> = async (token: string, fileInFormData: FormData) => {
+> = async ({ token, fileInFormData }) => {
   const cookieFingerprint = getFingprintCookie()
   const decodedJwt = decodeAndVerifyJwt(token) as JwtPayload
   if (cookieFingerprint && decodedJwt) {

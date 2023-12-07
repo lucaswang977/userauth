@@ -2,6 +2,7 @@
  * @jest-environment node
  */
 
+import { readFileSync } from "fs"
 import {
   activateUserByActivationCode,
   changePassword,
@@ -23,7 +24,6 @@ import {
   verifyPassword,
 } from "@/l/user"
 import { delay } from "@/l/utility"
-import { readFileSync } from "fs"
 import * as Jwt from "jsonwebtoken"
 
 jest.mock("uuid", () => ({ v4: () => "0a613541-ba97-47f5-84e3-fdc35a09717c" }))
@@ -90,15 +90,15 @@ afterAll(async () => {
 
 describe("User register and activate action", () => {
   test("Test register() and activate()", async () => {
-    const registerRes = await registerNotActivatedUserByEmailPwd(email, pwd)
+    const registerRes = await registerNotActivatedUserByEmailPwd({ email, pwd })
     expect(registerRes.result).toBeTruthy()
 
     expect(activationCode).toBeDefined()
     if (activationCode) {
-      const activateRes = await activateUserByActivationCode(
+      const activateRes = await activateUserByActivationCode({
         email,
-        activationCode,
-      )
+        code: activationCode,
+      })
       expect(activateRes.result).toBeTruthy()
     }
   })
@@ -106,7 +106,10 @@ describe("User register and activate action", () => {
 
 describe("User login action", () => {
   test("Test loginByEmailPwd()", async () => {
-    const { result, token, refreshToken } = await loginByEmailPwd(email, pwd)
+    const { result, token, refreshToken } = await loginByEmailPwd({
+      email,
+      pwd,
+    })
     expect(result).toBeTruthy()
     expect(token).toBeDefined()
     expect(refreshToken).toBeDefined()
@@ -120,13 +123,13 @@ describe("User login action", () => {
         expect(userId).toBeDefined()
       }
     }
-    const failedRes = await loginByEmailPwd(email, "wrongpwd")
+    const failedRes = await loginByEmailPwd({ email, pwd: "wrongpwd" })
     expect(failedRes.result).toBeFalsy()
   })
 
   test("Test refreshJwt()", async () => {
     const { result, token, refreshToken, refreshExpires } =
-      await loginByEmailPwd(email, pwd)
+      await loginByEmailPwd({ email, pwd })
     expect(result).toBeTruthy()
     expect(token).toBeDefined()
     expect(refreshToken).toBeDefined()
@@ -154,26 +157,34 @@ describe("User change password action", () => {
   test("Test changePassword()", async () => {
     expect(currentToken).toBeDefined()
     if (currentToken) {
-      const updateRes = await changePassword(currentToken, pwd, newPwd)
+      const updateRes = await changePassword({
+        token: currentToken,
+        oldPwd: pwd,
+        newPwd,
+      })
       expect(updateRes.result).toBeTruthy()
 
-      const updateAgainRes = await changePassword(currentToken, pwd, newPwd)
+      const updateAgainRes = await changePassword({
+        token: currentToken,
+        oldPwd: pwd,
+        newPwd,
+      })
       expect(updateAgainRes.result).toBeFalsy()
     }
   })
 
   test("Test resetPassword()", async () => {
-    const resetRes = await resetPasswordWithEmail(email)
+    const resetRes = await resetPasswordWithEmail({ email })
     expect(resetRes.result).toBeTruthy()
 
     expect(passwordResetCode).toBeTruthy()
 
     if (passwordResetCode) {
-      const updateRes = await resetPasswordWithResetCode(
+      const updateRes = await resetPasswordWithResetCode({
         email,
-        passwordResetCode,
-        pwd,
-      )
+        resetCode: passwordResetCode,
+        newPwd: pwd,
+      })
       expect(updateRes.result).toBeTruthy()
 
       const user = await getUserObjectByEmail(email)
@@ -195,7 +206,10 @@ describe("User upload avatar image action", () => {
     formData.append("file", new Blob([buffer]), filename)
 
     if (currentToken) {
-      const uploadRes = await uploadAvatarImage(currentToken, formData)
+      const uploadRes = await uploadAvatarImage({
+        token: currentToken,
+        fileInFormData: formData,
+      })
       expect(uploadRes.result).toBeTruthy()
     }
   })
@@ -211,9 +225,12 @@ describe("User change profile action", () => {
       const oldUser = await getUserObjectByEmail(email)
       expect(oldUser).toBeDefined()
 
-      const updateRes = await changeProfile(currentToken, {
-        nickname,
-        gender,
+      const updateRes = await changeProfile({
+        token: currentToken,
+        profile: {
+          nickname,
+          gender,
+        },
       })
       expect(updateRes.result).toBeTruthy()
 
@@ -239,7 +256,7 @@ describe("Test logout all action", () => {
       expect(user?.refreshToken).toBeDefined()
 
       if (user) {
-        const res = await logoutAll(currentToken)
+        const res = await logoutAll({ token: currentToken })
         expect(res).toBeTruthy()
 
         if (user.refreshToken) {

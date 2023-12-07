@@ -5,15 +5,15 @@ import { slogger } from "@/l/utility"
 export default function LoginPage() {
   return (
     <LoginForm
-      handleLogin={async (email, password) => {
+      handleLogin={async (email, pwd) => {
         "use server"
 
-        const result = await loginByEmailPwd(email, password)
+        const result = await loginByEmailPwd({ email, pwd })
         if (result.result && result.token) {
           slogger.info(
             "login success with %s(%s), token: %s",
             email,
-            password,
+            pwd,
             result.token,
           )
           return [result.result, result.token]
@@ -21,7 +21,7 @@ export default function LoginPage() {
         slogger.info(
           "login failed with %s(%s), msg: %s",
           email,
-          password,
+          pwd,
           result.reason,
         )
 
