@@ -5,10 +5,10 @@ export type UserType = Selectable<User>
 export type InsertUserType = Insertable<User>
 export type UpdateUserType = Updateable<User>
 
-export interface UnprotectedServerActionType<T, R> {
+export interface UnprotectedServerActionType<T = {}, R = ActionResult> {
   (args: T): Promise<R>
 }
-export interface ProtectedServerActionType<T, R> {
+export interface ProtectedServerActionType<T = {}, R = ActionResult> {
   (args: T & { token: string }): Promise<R>
 }
 

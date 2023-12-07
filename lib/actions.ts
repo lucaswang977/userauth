@@ -46,10 +46,10 @@ import {
 import envVariables from "./env"
 import { generateUUID, getExtension } from "./utility"
 
-const registerNotActivatedUserByEmailPwd: UnprotectedServerActionType<
-  { email: string; pwd: string },
-  ActionResult
-> = async ({ email, pwd }) => {
+const registerNotActivatedUserByEmailPwd: UnprotectedServerActionType<{
+  email: string
+  pwd: string
+}> = async ({ email, pwd }) => {
   const user = await getUserObjectByEmail(email)
   if (user) {
     return { result: false, reason: "Email already registered." }
@@ -75,10 +75,10 @@ const registerNotActivatedUserByEmailPwd: UnprotectedServerActionType<
   return { result: false, reason: "User registration failed." }
 }
 
-const activateUserByActivationCode: UnprotectedServerActionType<
-  { email: string; code: string },
-  ActionResult
-> = async ({ email, code }) => {
+const activateUserByActivationCode: UnprotectedServerActionType<{
+  email: string
+  code: string
+}> = async ({ email, code }) => {
   const user = await getUserObjectByEmail(email)
   if (!user) {
     return { result: false, reason: "Email has not been registered yet." }
@@ -134,10 +134,10 @@ const loginByEmailPwd: UnprotectedServerActionType<
   return { result: false, reason: "Username or password invalid." }
 }
 
-const refreshJwt = async (
-  refreshToken: string,
-  token: string,
-): Promise<LoginResult> => {
+const refreshJwt: ProtectedServerActionType<
+  { refreshToken: string },
+  LoginResult
+> = async ({ refreshToken, token }) => {
   // No need to check JWT's expiration, we just extract the data
   const decoded = decodeWithoutVerifyJwt(token)
   if (decoded) {
@@ -179,10 +179,10 @@ const refreshJwt = async (
   return { result: false, reason: "Refresh token verification failed." }
 }
 
-const changePassword: ProtectedServerActionType<
-  { oldPwd: string; newPwd: string },
-  ActionResult
-> = async ({ token, oldPwd, newPwd }) => {
+const changePassword: ProtectedServerActionType<{
+  oldPwd: string
+  newPwd: string
+}> = async ({ token, oldPwd, newPwd }) => {
   const cookieFingerprint = getFingprintCookie()
   const decodedJwt = decodeAndVerifyJwt(token) as JwtPayload
   if (cookieFingerprint && decodedJwt) {
@@ -208,10 +208,9 @@ const changePassword: ProtectedServerActionType<
   return { result: false, reason: "Change password failed." }
 }
 
-const resetPasswordWithEmail: UnprotectedServerActionType<
-  { email: string },
-  ActionResult
-> = async ({ email }) => {
+const resetPasswordWithEmail: UnprotectedServerActionType<{
+  email: string
+}> = async ({ email }) => {
   const userObj = await getUserObjectByEmail(email)
 
   if (userObj) {
@@ -229,10 +228,11 @@ const resetPasswordWithEmail: UnprotectedServerActionType<
   return { result: false, reason: "Email not found." }
 }
 
-const resetPasswordWithResetCode: UnprotectedServerActionType<
-  { email: string; resetCode: string; newPwd: string },
-  ActionResult
-> = async ({ email, resetCode, newPwd }) => {
+const resetPasswordWithResetCode: UnprotectedServerActionType<{
+  email: string
+  resetCode: string
+  newPwd: string
+}> = async ({ email, resetCode, newPwd }) => {
   const userObj = await getUserObjectByEmail(email)
 
   if (userObj) {
@@ -246,10 +246,9 @@ const resetPasswordWithResetCode: UnprotectedServerActionType<
   return { result: false, reason: "Email not found." }
 }
 
-const changeProfile: ProtectedServerActionType<
-  { profile: UserProfileType },
-  ActionResult
-> = async ({ token, profile }) => {
+const changeProfile: ProtectedServerActionType<{
+  profile: UserProfileType
+}> = async ({ token, profile }) => {
   const cookieFingerprint = getFingprintCookie()
   const decodedJwt = decodeAndVerifyJwt(token) as JwtPayload
   if (cookieFingerprint && decodedJwt) {
@@ -271,9 +270,7 @@ const changeProfile: ProtectedServerActionType<
 
 // Revoke the refresh token, so all the loggin in devices will be forced
 // to re-login
-const logoutAll: ProtectedServerActionType<{}, ActionResult> = async ({
-  token,
-}) => {
+const logoutAll: ProtectedServerActionType = async ({ token }) => {
   const cookieFingerprint = getFingprintCookie()
   const decodedJwt = decodeAndVerifyJwt(token) as JwtPayload
   if (cookieFingerprint && decodedJwt) {

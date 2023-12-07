@@ -137,7 +137,7 @@ describe("User login action", () => {
 
     await delay(500)
     if (token && refreshToken) {
-      const refreshRes = await refreshJwt(refreshToken, token)
+      const refreshRes = await refreshJwt({ refreshToken, token })
 
       expect(refreshRes.result).toBeTruthy()
       expect(refreshRes.token).toBeDefined()
@@ -260,7 +260,10 @@ describe("Test logout all action", () => {
         expect(res).toBeTruthy()
 
         if (user.refreshToken) {
-          const refreshRes = await refreshJwt(user.refreshToken, currentToken)
+          const refreshRes = await refreshJwt({
+            refreshToken: user.refreshToken,
+            token: currentToken,
+          })
           expect(refreshRes.result).toBeFalsy()
           const newUser = await getUserObjectByEmail(email)
           expect(newUser?.refreshToken).toBeFalsy()
