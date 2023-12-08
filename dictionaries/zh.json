@@ -1,0 +1,10 @@
+{
+  "serverAction": {
+    "reasons": {
+      "loginByEmailPwd": {
+        "notActivated": "用户尚未被激活。",
+        "namePwdInvalid": "用户名或密码错误。"
+      }
+    }
+  }
+}

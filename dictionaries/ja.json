@@ -1,0 +1,10 @@
+{
+  "serverAction": {
+    "reasons": {
+      "loginByEmailPwd": {
+        "notActivated": "ユーザーはまだ有効化されていません。",
+        "namePwdInvalid": "ユーザー名またはパスワードが無効です。"
+      }
+    }
+  }
+}

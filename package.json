@@ -14,10 +14,12 @@
     "e2e": "docker run -it --platform linux/amd64 -v devenv-config_vwork:/root/work --network devenv-config_default --entrypoint=cypress cypress/included:latest run --e2e --project $PWD --config baseUrl='http://devenv:3000'"
   },
   "dependencies": {
+    "@formatjs/intl-localematcher": "^0.5.2",
     "@radix-ui/react-checkbox": "^1.0.4",
     "@radix-ui/react-dropdown-menu": "^2.0.6",
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-tooltip": "^1.0.7",
+    "@types/negotiator": "^0.6.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "cookies-next": "^4.1.0",
@@ -26,6 +28,7 @@
     "jsonwebtoken": "^9.0.2",
     "kysely": "^0.26.3",
     "lucide-react": "^0.292.0",
+    "negotiator": "^0.6.3",
     "next": "^14.0.3",
     "nodemailer": "^6.9.7",
     "pg": "^8.11.3",

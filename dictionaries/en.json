@@ -1,0 +1,10 @@
+{
+  "serverAction": {
+    "reasons": {
+      "loginByEmailPwd": {
+        "notActivated": "User not activated yet.",
+        "namePwdInvalid": "Username or password invalid."
+      }
+    }
+  }
+}

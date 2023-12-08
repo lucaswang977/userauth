@@ -42,9 +42,11 @@ import {
   verifyPasswordResetCode,
   verifyRefreshToken,
 } from "@/l/user"
+import { headers } from "next/headers"
 
+import { getDictionary } from "./dict"
 import envVariables from "./env"
-import { generateUUID, getExtension } from "./utility"
+import { generateUUID, getCurrentLocale, getExtension } from "./utility"
 
 const registerNotActivatedUserByEmailPwd: UnprotectedServerActionType<{
   email: string
@@ -103,6 +105,8 @@ const loginByEmailPwd: UnprotectedServerActionType<
   LoginResult
 > = async ({ email, pwd }) => {
   const user = await getUserObjectByEmail(email)
+  const acceptLanguageHeader = headers().get("accept-language")
+  const dict = await getDictionary(getCurrentLocale(acceptLanguageHeader))
 
   if (user) {
     const { id, passwordSalt, password, emailActivated } = user
@@ -113,7 +117,10 @@ const loginByEmailPwd: UnprotectedServerActionType<
       verifyPassword(pwd, passwordSalt, password)
     ) {
       if (!emailActivated) {
-        return { result: false, reason: "User not activated yet." }
+        return {
+          result: false,
+          reason: dict.serverAction.reasons.loginByEmailPwd.notActivated,
+        }
       }
 
       // Save fingerprint in cookie and hashed one in the token
@@ -131,7 +138,10 @@ const loginByEmailPwd: UnprotectedServerActionType<
     }
   }
 
-  return { result: false, reason: "Username or password invalid." }
+  return {
+    result: false,
+    reason: dict.serverAction.reasons.loginByEmailPwd.namePwdInvalid,
+  }
 }
 
 const refreshJwt: ProtectedServerActionType<

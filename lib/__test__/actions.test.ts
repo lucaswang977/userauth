@@ -40,11 +40,18 @@ jest.mock("next/headers", () => {
       },
       get: () => ({ value: fingerprint }),
     }),
+    headers: () => ({
+      get: (key: string) =>
+        key.toLowerCase() === "accept-language"
+          ? "ja,en-US;q=0.9,en;q=0.8,zh-TW;q=0.7,zh-CN;q=0.6,zh;q=0.5"
+          : null,
+    }),
   }
 })
 
 let activationCode: string | undefined
 let passwordResetCode: string | undefined
+let uploadedImageUrl: string | undefined
 
 jest.mock("nodemailer", () => {
   const originalModule = jest.requireActual("nodemailer")
@@ -211,6 +218,9 @@ describe("User upload avatar image action", () => {
         fileInFormData: formData,
       })
       expect(uploadRes.result).toBeTruthy()
+      expect(uploadRes.url).toBeDefined()
+
+      uploadedImageUrl = uploadRes.url
     }
   })
 })
@@ -224,12 +234,14 @@ describe("User change profile action", () => {
     if (currentToken) {
       const oldUser = await getUserObjectByEmail(email)
       expect(oldUser).toBeDefined()
+      expect(uploadedImageUrl).toBeDefined()
 
       const updateRes = await changeProfile({
         token: currentToken,
         profile: {
           nickname,
           gender,
+          avatarUrl: uploadedImageUrl,
         },
       })
       expect(updateRes.result).toBeTruthy()
@@ -238,6 +250,7 @@ describe("User change profile action", () => {
       expect(user).toBeDefined()
       expect(user?.nickname).toEqual(nickname)
       expect(user?.gender).toEqual(gender)
+      expect(user?.avatarUrl).toBeDefined()
       if (user && oldUser && user.updatedAt && oldUser.updatedAt)
         expect(
           user.updatedAt.getTime() > oldUser.updatedAt.getTime(),
