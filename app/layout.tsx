@@ -5,8 +5,11 @@ import type { Metadata } from "next"
 import getConfig from "next/config"
 import { Inter as FontSans } from "next/font/google"
 import { cookies } from "next/headers"
+import Image from "next/image"
 import Link from "next/link"
 import * as React from "react"
+
+import logoSvg from "../public/img/logo.svg"
 
 import "@/s/globals.css"
 
@@ -40,10 +43,11 @@ export default function RootLayout({
           className={cn(
             "container min-h-screen",
             "flex flex-col items-center justify-between",
+            "bg-[url('/img/background.svg')] dark:bg-[url('/img/background-dark.svg')]",
           )}
         >
           <Link className="mt-2" href="/">
-            Home
+            <Image alt="logo" src={logoSvg} />
           </Link>
           {children}
           <div className="mb-2 flex flex-col items-center text-sm text-gray-500">
