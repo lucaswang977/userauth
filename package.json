@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "jest --watch --detectOpenHandles",
+    "test": "jest --watchAll --detectOpenHandles",
     "test:coverage": "jest --coverage",
     "migrate": "tsx ./scripts/migrate.ts | pino-pretty",
     "dbgen": "kysely-codegen --dialect postgres --out-file ./lib/dbgen.d.ts",
@@ -76,5 +76,6 @@
     "prettier-plugin-tailwindcss": "^0.5.7",
     "tsx": "^3.14.0",
     "typescript": "^5.3.2"
-  }
+  },
+  "packageManager": "yarn@4.0.2"
 }

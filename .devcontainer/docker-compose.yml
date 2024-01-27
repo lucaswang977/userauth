@@ -24,18 +24,18 @@ services:
     # (Adding the "ports" property to this file will not forward from a Codespace.)
 
   pgadmin:
-      image: dpage/pgadmin4:latest
-      container_name: pgadmin
-      platform: linux/x86_64    
-      restart: always
-
-      volumes:
-        - vpgadmin:/var/lib/pgadmin
-      environment:
-        PGADMIN_DEFAULT_EMAIL: admin@abcd.com
-        PGADMIN_DEFAULT_PASSWORD: password
-      depends_on:
-        - pgdb
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    platform: linux/x86_64    
+    restart: always
+    network_mode: service:pgdb
+    volumes:
+      - vpgadmin:/var/lib/pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@abcd.com
+      PGADMIN_DEFAULT_PASSWORD: password
+    depends_on:
+      - pgdb
 
   pgdb:
     image: postgres:latest
@@ -43,7 +43,7 @@ services:
     platform: linux/x86_64
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./configs/pg-multi-db:/docker-entrypoint-initdb.d      
+      - ./configs/pg-multi-db:/docker-entrypoint-initdb.d
     environment:
       POSTGRES_PASSWORD: localdbpassword
       POSTGRES_USER: puser
