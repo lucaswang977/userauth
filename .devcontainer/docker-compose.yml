@@ -2,11 +2,13 @@ version: '3.8'
 
 services:
   devenv:
+    container_name: devenv
     build: 
       context: .
       dockerfile: Dockerfile
     
     platform: linux/x86_64
+    network_mode: service:pgdb
     
     volumes:
       - ../..:/workspaces:cached
@@ -18,7 +20,6 @@ services:
     command: sleep infinity
 
     # Runs app on the same network as the database container, allows "forwardPorts" in devcontainer.json function.
-    network_mode: service:pgdb
 
     # Use "forwardPorts" in **devcontainer.json** to forward an app port locally. 
     # (Adding the "ports" property to this file will not forward from a Codespace.)
@@ -26,9 +27,9 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: pgadmin
-    platform: linux/x86_64    
     restart: always
     network_mode: service:pgdb
+
     volumes:
       - vpgadmin:/var/lib/pgadmin
     environment:
@@ -40,14 +41,14 @@ services:
   pgdb:
     image: postgres:latest
     restart: unless-stopped
-    platform: linux/x86_64
+    container_name: pgdb
+    
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./configs/pg-multi-db:/docker-entrypoint-initdb.d
     environment:
       POSTGRES_PASSWORD: localdbpassword
       POSTGRES_USER: puser
-      POSTGRES_MULTIPLE_DATABASES: testdb,testdb1,testdb2
+      POSTGRES_DB: testdb1
 
     # Add "forwardPorts": ["5432"] to **devcontainer.json** to forward PostgreSQL locally.
     # (Adding the "ports" property to this file will not forward from a Codespace.)

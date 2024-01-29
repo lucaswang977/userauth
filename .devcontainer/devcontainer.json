@@ -11,10 +11,10 @@
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// This can be used to network with other containers or with the host.
-	"forwardPorts": [3000, 5432, 80],
+	"forwardPorts": [3000, 80]
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "yarn install"
+	// "postCreateCommand": "npx cypress install"
 
 	// Configure tool-specific properties.
 	// "customizations": {},
