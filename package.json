@@ -11,7 +11,7 @@
     "test:coverage": "jest --coverage",
     "migrate": "tsx ./scripts/migrate.ts | pino-pretty",
     "dbgen": "kysely-codegen --dialect postgres --out-file ./lib/dbgen.d.ts",
-    "e2e": "DISPLAY=:99 cypress run --e2e --config baseUrl='http://localhost:3000'"
+    "e2e": "xvfb-run -a npx cypress run --e2e --config baseUrl='http://localhost:3000'"
   },
   "dependencies": {
     "@formatjs/intl-localematcher": "^0.5.2",
