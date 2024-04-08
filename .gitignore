@@ -45,3 +45,5 @@ cypress/videos
 cypress/screenshots
 
 public/upload
+
+*.gen.d.ts

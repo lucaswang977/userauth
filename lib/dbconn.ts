@@ -1,4 +1,4 @@
-import { DB } from "@/l/dbgen"
+import { DB } from "@/l/dbbase.gen"
 import envVariables from "@/l/env"
 // import { slogger } from "@/l/utility"
 import { Kysely, PostgresDialect } from "kysely"
