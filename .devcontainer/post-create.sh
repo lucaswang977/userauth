@@ -10,5 +10,3 @@ npm install -g pino-pretty
 
 # NPM initialize
 npm install
-npm run migrate
-npm run dbgen
